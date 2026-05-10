@@ -1,0 +1,5 @@
+export default function Spinner({ className = "w-5 h-5" }) {
+  return (
+    <div className={`${className} border-2 border-current border-r-transparent rounded-full animate-spin`} />
+  )
+}
