@@ -29,8 +29,7 @@ export default function Login() {
       toast.success("Welcome back!")
       const role = me.data.role
       if (role === "admin") navigate("/admin")
-      else if (role === "seller") navigate("/seller")
-      else navigate("/buyer")
+      else navigate("/dashboard")
     },
     onError: () => toast.error("Invalid email or password"),
   })

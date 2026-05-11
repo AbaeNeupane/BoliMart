@@ -3,8 +3,7 @@ export const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000"
 
 export const ROLES = {
   ADMIN: "admin",
-  SELLER: "seller",
-  BUYER: "buyer",
+  USER: "user",
 }
 
 export const LISTING_STATUS = {
