@@ -8,7 +8,6 @@ import { register as registerApi, login, getMe } from "../api/auth"
 import { useAuthStore } from "../store/authStore"
 import Button from "../components/ui/Button"
 import Input from "../components/ui/Input"
-import { ROLES } from "../utils/constants"
 
 const schema = z.object({
   full_name: z.string().min(2, "Name is too short"),
@@ -19,11 +18,9 @@ const schema = z.object({
 export default function Register() {
   const navigate = useNavigate()
   const { login: storeLogin } = useAuthStore()
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { role: ROLES.BUYER },
   })
-  const selectedRole = watch("role")
 
   const mutation = useMutation({
     mutationFn: registerApi,
@@ -34,7 +31,7 @@ export default function Register() {
       const me = await getMe()
       storeLogin(access_token, refresh_token, me.data)
       toast.success("Account created!")
-      navigate(variables.role === ROLES.SELLER ? "/seller" : "/buyer")
+      navigate("/dashboard")
     },
     onError: (err) => toast.error(err.response?.data?.detail || "Registration failed"),
   })
@@ -44,24 +41,6 @@ export default function Register() {
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Create account</h1>
         <p className="text-gray-500 text-sm mb-6">Join the marketplace</p>
-
-        {/* Role selector */}
-        <div className="flex gap-3 mb-6">
-          {[ROLES.BUYER, ROLES.SELLER].map((role) => (
-            <button
-              key={role}
-              type="button"
-              onClick={() => setValue("role", role)}
-              className={`flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                selectedRole === role
-                  ? "border-primary-500 bg-primary-50 text-primary-600"
-                  : "border-gray-200 text-gray-500 hover:border-gray-300"
-              }`}
-            >
-              {role === ROLES.BUYER ? "🛒 I want to buy" : "📦 I want to sell"}
-            </button>
-          ))}
-        </div>
 
         <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
           <Input label="Full name" error={errors.full_name?.message} {...register("full_name")} />

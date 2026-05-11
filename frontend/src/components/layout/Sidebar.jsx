@@ -7,13 +7,11 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const menuItems = user ? [
     { label: "Home", href: "/" },
-    { label: "My Dashboard", href: user.role === ROLES.SELLER ? "/seller" : user.role === ROLES.BUYER ? "/buyer" : "/admin" },
-    ...(user.role === ROLES.SELLER ? [
-      { label: "Create Listing", href: "/seller/listings/create" },
-      { label: "My Listings", href: "/seller" },
-    ] : []),
-    ...(user.role === ROLES.BUYER ? [
-      { label: "My Bids", href: "/buyer" },
+    { label: "My Dashboard", href: user.role === ROLES.ADMIN ? "/admin" : "/dashboard" },
+    ...(user.role === ROLES.USER ? [
+      { label: "Create Listing", href: "/listings/create" },
+      { label: "My Listings", href: "/my-listings" },
+      { label: "My Bids", href: "/my-bids" },
     ] : []),
     ...(user.role === ROLES.ADMIN ? [
       { label: "Users", href: "/admin/users" },

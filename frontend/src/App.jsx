@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "react-hot-toast"
 
@@ -12,13 +12,13 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import NotFound from "./pages/NotFound"
 
-import SellerDashboard from "./pages/seller/SellerDashboard"
-import CreateListing from "./pages/seller/CreateListing"
-import EditListing from "./pages/seller/EditListing"
-import ListingAnalytics from "./pages/seller/ListingAnalytics"
-
-import BuyerDashboard from "./pages/buyer/BuyerDashboard"
-import Checkout from "./pages/buyer/Checkout"
+import Dashboard from "./pages/user/Dashboard"
+import MyListings from "./pages/user/MyListings"
+import CreateListing from "./pages/user/CreateListing"
+import EditListing from "./pages/user/EditListing"
+import ListingAnalytics from "./pages/user/ListingAnalytics"
+import MyBids from "./pages/user/MyBids"
+import Checkout from "./pages/user/Checkout"
 
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminUsers from "./pages/admin/AdminUsers"
@@ -42,21 +42,16 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Seller */}
+          {/* User (Buyer + Seller) */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<RoleGuard roles={[ROLES.SELLER, ROLES.ADMIN]} />}>
-              <Route path="/seller" element={<SellerDashboard />} />
-              <Route path="/seller/listings/create" element={<CreateListing />} />
-              <Route path="/seller/listings/:id/edit" element={<EditListing />} />
-              <Route path="/seller/listings/:id/analytics" element={<ListingAnalytics />} />
-            </Route>
-          </Route>
-
-          {/* Buyer */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<RoleGuard roles={[ROLES.BUYER, ROLES.ADMIN]} />}>
-              <Route path="/buyer" element={<BuyerDashboard />} />
-              <Route path="/buyer/checkout/:listingId" element={<Checkout />} />
+            <Route element={<RoleGuard roles={[ROLES.USER, ROLES.ADMIN]} />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/my-listings" element={<MyListings />} />
+              <Route path="/listings/create" element={<CreateListing />} />
+              <Route path="/listings/:id/edit" element={<EditListing />} />
+              <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
+              <Route path="/my-bids" element={<MyBids />} />
+              <Route path="/checkout/:listingId" element={<Checkout />} />
             </Route>
           </Route>
 

@@ -9,8 +9,7 @@ export default function Navbar() {
 
   const dashboardPath = {
     [ROLES.ADMIN]: "/admin",
-    [ROLES.SELLER]: "/seller",
-    [ROLES.BUYER]: "/buyer",
+    [ROLES.USER]: "/dashboard",
   }[user?.role] || "/"
 
   return (
