@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
 
 class TransactionCreate(BaseModel):
     listing_id: str
@@ -17,3 +19,6 @@ class TransactionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CommissionConfig(BaseModel):
+    commission_percent: float  # 0–100
