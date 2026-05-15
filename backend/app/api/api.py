@@ -1,12 +1,8 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, users, listings, bids, payments, uploads, admin
+from app.api.endpoints import auth, users, listings
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(listings.router, prefix="/listings", tags=["listings"])
-api_router.include_router(bids.router, prefix="/bids", tags=["bids"])
-api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
-api_router.include_router(uploads.router, prefix="/upload", tags=["uploads"])
-api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
