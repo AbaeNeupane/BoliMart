@@ -22,7 +22,9 @@ class ListingResponse(BaseModel):
 
 @router.get("/")
 async def get_listings():
-    return {"message": "Listings endpoint - to be implemented"}
+    # Return an empty list for now so frontend receives an array shape
+    # Frontend expects the response body to be an array of listings.
+    return []
 
 @router.get("/{listing_id}")
 async def get_listing(listing_id: str):
