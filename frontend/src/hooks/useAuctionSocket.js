@@ -4,7 +4,7 @@ import { WS_URL } from "../utils/constants"
 
 export const useAuctionSocket = (listingId, onBidReceived) => {
   useEffect(() => {
-    const socket = new WebSocket(`${WS_URL}/ws/listing/${listingId}`)
+    const socket = new WebSocket(`${WS_URL}/ws/auction/${listingId}`)
 
     socket.onopen = () => {
       useSocketStore.getState().setConnected(true)

@@ -1,9 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
+from app.core.config import settings
 
 def test_auth_register(test_client):
     response = test_client.post(
-        "/auth/register",
+        f"{settings.API_V1_STR}/auth/register",
         json={
             "email": "test@example.com",
             "username": "testuser",
@@ -18,7 +19,7 @@ def test_auth_register(test_client):
 def test_auth_login(test_client):
     # First register a user
     test_client.post(
-        "/auth/register",
+        f"{settings.API_V1_STR}/auth/register",
         json={
             "email": "test@example.com",
             "username": "testuser",
@@ -29,7 +30,7 @@ def test_auth_login(test_client):
     
     # Then try to login
     response = test_client.post(
-        "/auth/login",
+        f"{settings.API_V1_STR}/auth/login",
         data={
             "username": "test@example.com",
             "password": "testpassword123"
