@@ -9,24 +9,41 @@ import { useDebounce } from "../hooks/useDebounce"
 
 const CATEGORIES = ["All", "Electronics", "Fashion", "Home", "Sports", "Art", "Vehicles", "Other"]
 const SORT_OPTIONS = [
-  { label: "Ending soon", value: "ending_soon" },
-  { label: "Newly listed", value: "newest" },
-  { label: "Lowest price", value: "price_asc" },
+  { label: "Ending soon",   value: "ending_soon" },
+  { label: "Newly listed",  value: "newest" },
+  { label: "Lowest price",  value: "price_asc" },
   { label: "Highest price", value: "price_desc" },
 ]
 
 export default function Home() {
-  const [search, setSearch] = useState("")
+  const [search, setSearch]     = useState("")
   const [category, setCategory] = useState("")
-  const [sort, setSort] = useState("ending_soon")
-  const debouncedSearch = useDebounce(search, 400)
+  const [sort, setSort]         = useState("ending_soon")
+  const [page, setPage]         = useState(1)
+  const debouncedSearch         = useDebounce(search, 400)
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["listings", debouncedSearch, category, sort],
-    queryFn: () => getListings({ q: debouncedSearch, category, sort, status: "active" }),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["listings", debouncedSearch, category, sort, page],
+    queryFn: async () => {
+      const res = await getListings({
+        q: debouncedSearch,
+        category: category || undefined,
+        sort,
+        status: "active",
+        page,
+      })
+      return res.data   // { items, total, page, page_size, pages }
+    },
+    keepPreviousData: true,
   })
 
-  const listings = data?.data || []
+  const listings = data?.items || []
+  const totalPages = data?.pages || 1
+
+  // Reset to page 1 whenever filters change
+  const handleCategory = (cat) => { setCategory(cat === "All" ? "" : cat); setPage(1) }
+  const handleSort     = (s)   => { setSort(s); setPage(1) }
+  const handleSearch   = (e)   => { setSearch(e.target.value); setPage(1) }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,7 +58,7 @@ export default function Home() {
             <Input
               placeholder="Search listings..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearch}
             />
           </div>
         </div>
@@ -54,10 +71,10 @@ export default function Home() {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setCategory(cat === "All" ? "" : cat)}
+                onClick={() => handleCategory(cat)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                   (cat === "All" && !category) || category === cat
-                    ? "bg-primary-500 text-white border-primary-500"
+                    ? "bg-orange-500 text-white border-orange-500"
                     : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -68,7 +85,7 @@ export default function Home() {
           <div className="ml-auto">
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
+              onChange={(e) => handleSort(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
             >
               {SORT_OPTIONS.map((o) => (
@@ -81,10 +98,35 @@ export default function Home() {
         {/* Results */}
         {isLoading ? (
           <div className="flex justify-center py-20"><Spinner /></div>
+        ) : isError ? (
+          <div className="text-center py-20 text-red-400">Failed to load listings. Is the backend running?</div>
         ) : listings.length === 0 ? (
           <div className="text-center py-20 text-gray-400">No listings found</div>
         ) : (
           <ListingGrid listings={listings} />
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-8">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="px-4 py-2 text-sm text-gray-600">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         )}
       </div>
     </div>
