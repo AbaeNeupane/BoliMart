@@ -35,9 +35,9 @@ async def place_bid_logic(
         raise NotFoundError("Listing not found")
     if listing.status != ListingStatus.ACTIVE:
         raise BadRequestError("Auction is not active")
-    if datetime.now(timezone.utc) > listing.ends_at:
+    if datetime.now(timezone.utc) > listing.auction_end_time:
         raise BadRequestError("Auction has ended")
-    if str(listing.owner_id) == bidder_id:
+    if str(listing.seller_id) == bidder_id:
         raise BadRequestError("Listing owners cannot bid on their own listings")
 
     # Validate amount
@@ -73,9 +73,9 @@ async def place_bid_logic(
 
     # Soft close — extend if bid in final window
     if listing.soft_close_enabled:
-        time_left = (listing.ends_at - datetime.now(timezone.utc)).total_seconds()
+        time_left = (listing.auction_end_time - datetime.now(timezone.utc)).total_seconds()
         if time_left < SOFT_CLOSE_WINDOW:
-            listing.ends_at = listing.ends_at + timedelta(seconds=SOFT_CLOSE_EXTENSION)
+            listing.auction_end_time = listing.auction_end_time + timedelta(seconds=SOFT_CLOSE_EXTENSION)
 
     await db.commit()
     await db.refresh(new_bid)
