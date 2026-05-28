@@ -14,18 +14,18 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-// Only logout on 401 if it's NOT the bids/payments endpoints
-// (those are stubs and always return 401 for now)
+// Only logout on 401 for actual auth failures
 client.interceptors.response.use(
   (res) => res,
   async (error) => {
     const url = error.config?.url || ""
     const status = error.response?.status
 
-    // Known stub endpoints — don't logout for these
+    // These endpoints are stubs or not yet implemented — don't logout
     const isStubEndpoint =
       url.includes("/bids/my") ||
-      url.includes("/payments/connect")
+      url.includes("/payments/connect") ||
+      url.includes("/listings/my")
 
     if (status === 401 && !isStubEndpoint) {
       useAuthStore.getState().logout()

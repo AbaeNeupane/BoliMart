@@ -8,7 +8,7 @@ import { formatCurrency } from "../../utils/formatters"
 export default function Dashboard() {
   const { data: myListings } = useQuery({
     queryKey: ["my-listings"],
-    queryFn: () => client.get("/listings?my=true"),
+    queryFn: () => client.get("/listings/my/listings"),
   })
 
   const { data: myBids } = useQuery({
@@ -21,7 +21,7 @@ export default function Dashboard() {
     queryFn: () => client.get("/payments/connect/status"),
   })
 
-  const listings = myListings?.data || []
+  const listings = myListings?.data?.items || []
   const bids = myBids?.data || []
   const stripeConnected = stripeData?.data?.connected
 

@@ -21,12 +21,12 @@ async def get_current_user(
     )
     try:
         payload = decode_token(token)
-        if payload.get("type") != "access":
+        if not payload:
             raise credentials_exc
         user_id = payload.get("sub")
         if not user_id:
             raise credentials_exc
-    except ValueError:
+    except (ValueError, AttributeError):
         raise credentials_exc
 
     result = await db.execute(select(User).where(User.id == user_id))
@@ -57,6 +57,8 @@ async def get_optional_user(
     try:
         token = auth_header.split(" ")[1]
         payload = decode_token(token)
+        if not payload:
+            return None
         user_id = payload.get("sub")
         if not user_id:
             return None
