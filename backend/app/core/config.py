@@ -18,8 +18,8 @@ class Settings(BaseSettings):
 
     # Email (Resend)
     RESEND_API_KEY: str = "your-resend-api-key"
-    EMAIL_FROM: str = "noreply@auctionhub.com"
-    EMAIL_FROM_NAME: str = "AuctionHub"
+    EMAIL_FROM: str = "noreply@bolimart.com"
+    EMAIL_FROM_NAME: str = "Bolimart"
 
     # Stripe
     STRIPE_SECRET_KEY: str = "sk_test_..."
@@ -35,5 +35,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore" 
 
 settings = Settings()
