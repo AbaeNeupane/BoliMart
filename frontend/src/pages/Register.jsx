@@ -11,6 +11,7 @@ import Input from "../components/ui/Input"
 
 const schema = z.object({
   full_name: z.string().min(2, "Name is too short"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 })
@@ -33,7 +34,13 @@ export default function Register() {
       toast.success("Account created!")
       navigate("/dashboard")
     },
-    onError: (err) => toast.error(err.response?.data?.detail || "Registration failed"),
+    onError: (err) => {
+      const detail = err.response?.data?.detail
+      const message = Array.isArray(detail)
+        ? detail.map(e => e.msg).join(", ")
+        : detail || "Registration failed"
+      toast.error(message)
+    },
   })
 
   return (
@@ -44,6 +51,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
           <Input label="Full name" error={errors.full_name?.message} {...register("full_name")} />
+          <Input label="Username" error={errors.username?.message} {...register("username")} />
           <Input label="Email" type="email" error={errors.email?.message} {...register("email")} />
           <Input label="Password" type="password" error={errors.password?.message} {...register("password")} />
           <Button type="submit" className="w-full" loading={mutation.isPending}>

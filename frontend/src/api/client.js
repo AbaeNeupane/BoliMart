@@ -14,24 +14,24 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-// Auto-refresh on 401
+// Only logout on 401 if it's NOT the bids/payments endpoints
+// (those are stubs and always return 401 for now)
 client.interceptors.response.use(
   (res) => res,
   async (error) => {
-    const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true
-      try {
-        const refreshToken = useAuthStore.getState().refreshToken
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
-        useAuthStore.getState().setTokens(data.access_token, data.refresh_token)
-        original.headers.Authorization = `Bearer ${data.access_token}`
-        return client(original)
-      } catch {
-        useAuthStore.getState().logout()
-        window.location.href = "/login"
-      }
+    const url = error.config?.url || ""
+    const status = error.response?.status
+
+    // Known stub endpoints — don't logout for these
+    const isStubEndpoint =
+      url.includes("/bids/my") ||
+      url.includes("/payments/connect")
+
+    if (status === 401 && !isStubEndpoint) {
+      useAuthStore.getState().logout()
+      window.location.href = "/login"
     }
+
     return Promise.reject(error)
   }
 )
