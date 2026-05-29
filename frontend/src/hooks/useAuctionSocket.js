@@ -1,9 +1,18 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useSocketStore } from "../store/socketStore"
 import { WS_URL } from "../utils/constants"
 
 export const useAuctionSocket = (listingId, onBidReceived) => {
+  const onBidReceivedRef = useRef(onBidReceived)
+
+  // Keep callback ref current without re-triggering the effect
   useEffect(() => {
+    onBidReceivedRef.current = onBidReceived
+  }, [onBidReceived])
+
+  useEffect(() => {
+    if (!listingId) return
+
     const socket = new WebSocket(`${WS_URL}/ws/auction/${listingId}`)
 
     socket.onopen = () => {
@@ -11,8 +20,12 @@ export const useAuctionSocket = (listingId, onBidReceived) => {
     }
 
     socket.onmessage = (event) => {
-      const bidData = JSON.parse(event.data)
-      onBidReceived?.(bidData)
+      try {
+        const bidData = JSON.parse(event.data)
+        onBidReceivedRef.current?.(bidData)
+      } catch (err) {
+        console.error("[WS] Failed to parse message:", err)
+      }
     }
 
     socket.onclose = () => {
@@ -21,6 +34,10 @@ export const useAuctionSocket = (listingId, onBidReceived) => {
 
     useSocketStore.getState().setSocket(socket)
 
-    return () => socket.close()
-  }, [listingId, onBidReceived])
+    return () => {
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close()
+      }
+    }
+  }, [listingId])
 }

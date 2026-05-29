@@ -11,7 +11,7 @@ import { formatCurrency } from "../../utils/formatters"
 export default function MyListings() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-listings"],
-    queryFn: () => client.get("/listings?my=true"),
+    queryFn: () => client.get("/listings/my/listings"),
   })
 
   const { data: stripeData } = useQuery({
@@ -19,7 +19,8 @@ export default function MyListings() {
     queryFn: () => client.get("/payments/connect/status"),
   })
 
-  const listings = data?.data || []
+  // API returns { items, total, page, pages }
+  const listings = data?.data?.items || []
   const stripeConnected = stripeData?.data?.connected
 
   return (
@@ -60,7 +61,10 @@ export default function MyListings() {
               label: "Active listings",
               value: listings.filter((l) => l.status === "active").length,
             },
-            { label: "Items sold", value: listings.filter((l) => l.status === "sold").length },
+            {
+              label: "Items sold",
+              value: listings.filter((l) => l.status === "sold").length,
+            },
             {
               label: "Total earned",
               value: formatCurrency(
@@ -115,10 +119,10 @@ export default function MyListings() {
                       <Badge status={listing.status} />
                     </td>
                     <td className="px-5 py-4 text-gray-900 font-semibold">
-                      {formatCurrency(listing.current_price || listing.min_price)}
+                      {formatCurrency(listing.current_price || listing.starting_price)}
                     </td>
                     <td className="px-5 py-4">
-                      <CountdownTimer endsAt={listing.ends_at} />
+                      <CountdownTimer endsAt={listing.auction_end_time} />
                     </td>
                     <td className="px-5 py-4 text-gray-600">{listing.bid_count || 0}</td>
                     <td className="px-5 py-4">

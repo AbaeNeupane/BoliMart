@@ -26,6 +26,16 @@ router = APIRouter()
 PAGE_SIZE = 20
 
 
+# ---------------------------------------------------------------------------
+# GET /listings/categories — list all categories (no auth required)
+# ---------------------------------------------------------------------------
+@router.get("/categories", response_model=List[dict])
+async def get_categories(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Category).order_by(Category.name))
+    cats = result.scalars().all()
+    return [{"id": str(c.id), "name": c.name, "slug": c.slug} for c in cats]
+
+
 def _serialize_listing(listing: Listing) -> dict:
     """Convert a Listing ORM object to a dict that ListingResponse can accept."""
     return {

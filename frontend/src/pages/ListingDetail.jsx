@@ -49,7 +49,7 @@ export default function ListingDetail() {
   if (isLoading) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex justify-center pt-20"><Spinner /></div></div>
   if (!listing) return null
 
-  const currentPrice = livePrice || listing.current_price || listing.min_price
+  const currentPrice = livePrice || listing.current_price || listing.starting_price
   const canBid = user && (user.role !== "seller" || user?.id !== listing.seller_id)
 
   return (
@@ -82,12 +82,13 @@ export default function ListingDetail() {
                   <p className="text-xs text-gray-400 uppercase tracking-wide">Current bid</p>
                   <p className="text-3xl font-bold text-gray-900">{formatCurrency(currentPrice)}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Min price: {formatCurrency(listing.min_price)}
+                    Starting price: {formatCurrency(listing.starting_price)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Time left</p>
-                  <CountdownTimer endsAt={listing.ends_at} />
+                  {/* Fixed: was listing.ends_at — correct DB column is auction_end_time */}
+                  <CountdownTimer endsAt={listing.auction_end_time} />
                 </div>
               </div>
 
@@ -95,7 +96,7 @@ export default function ListingDetail() {
               {listing.status === "active" && canBid && user && (
                 <BidForm
                   currentPrice={currentPrice}
-                  minPrice={listing.min_price}
+                  minPrice={listing.starting_price}
                   onSubmit={(amount) => bidMutation.mutate(amount)}
                   loading={bidMutation.isPending}
                 />
@@ -116,7 +117,8 @@ export default function ListingDetail() {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Listed by <span className="font-medium text-gray-700">{listing.seller?.full_name}</span></p>
               <p>Started {formatDate(listing.starts_at)}</p>
-              <p>Ends {formatDate(listing.ends_at)}</p>
+              {/* Fixed: was listing.ends_at — correct DB column is auction_end_time */}
+              <p>Ends {formatDate(listing.auction_end_time)}</p>
             </div>
 
             {/* Bid history */}

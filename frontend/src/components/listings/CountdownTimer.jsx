@@ -4,7 +4,10 @@ export default function CountdownTimer({ endsAt }) {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(endsAt))
 
   function getTimeLeft(end) {
-    const diff = new Date(end) - new Date()
+    if (!end) return { label: "—", urgent: false, ended: false }
+    const endDate = new Date(end)
+    if (isNaN(endDate.getTime())) return { label: "—", urgent: false, ended: false }
+    const diff = endDate - new Date()
     if (diff <= 0) return { label: "Ended", urgent: false, ended: true }
     const d = Math.floor(diff / 86400000)
     const h = Math.floor((diff % 86400000) / 3600000)
