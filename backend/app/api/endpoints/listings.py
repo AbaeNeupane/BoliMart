@@ -124,9 +124,9 @@ async def get_listings(
     elif sort == "newest":
         query = query.order_by(desc(Listing.created_at))
     elif sort == "price_asc":
-        query = query.order_by(asc(Listing.current_price.coalesce(Listing.starting_price)))
+        query = query.order_by(asc(func.coalesce(Listing.current_price, Listing.starting_price)))
     elif sort == "price_desc":
-        query = query.order_by(desc(Listing.current_price.coalesce(Listing.starting_price)))
+        query = query.order_by(desc(func.coalesce(Listing.current_price, Listing.starting_price)))
     else:
         query = query.order_by(asc(Listing.auction_end_time))
 

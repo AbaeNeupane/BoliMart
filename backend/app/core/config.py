@@ -9,6 +9,9 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost/auction_db"
+    
+    # Frontend
+    FRONTEND_URL: str = "http://localhost:5173"
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
@@ -25,6 +28,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = "sk_test_..."
     STRIPE_PUBLISHABLE_KEY: str = "pk_test_..."
     STRIPE_WEBHOOK_SECRET: str = "whsec_..."
+    STRIPE_PLATFORM_FEE_PERCENT: float = 10.0
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
