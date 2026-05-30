@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -9,8 +9,8 @@ from app.models.user import User
 from app.models.listing import Listing
 from app.schemas.bid import BidCreate, BidResponse
 from app.core.dependencies import get_current_user
-from app.core.constants import UserRole, BidStatus, ListingStatus
-from app.core.exceptions import NotFoundError, BadRequestError, ForbiddenError
+from app.core.constants import BidStatus, ListingStatus
+from app.core.exceptions import NotFoundError, BadRequestError
 from decimal import Decimal
 from datetime import datetime, timezone, timedelta
 
@@ -27,7 +27,6 @@ async def place_bid_logic(
     bidder_ip: str,
     db: AsyncSession,
 ) -> Bid:
-    """Place a bid on a listing with soft-close auction logic."""
     result = await db.execute(select(Listing).where(Listing.id == listing_id).with_for_update())
     listing = result.scalar_one_or_none()
 
@@ -40,29 +39,32 @@ async def place_bid_logic(
     if str(listing.seller_id) == bidder_id:
         raise BadRequestError("Listing owners cannot bid on their own listings")
 
-    # Validate amount
-    floor = Decimal(str(listing.current_price or listing.min_price))
-    min_required = floor if not listing.current_price else floor * (1 + MIN_BID_INCREMENT)
-    min_required = max(min_required, Decimal(str(listing.min_price)))
+    # Validate amount — must be at least 5% above current price or starting price
+    floor = Decimal(str(listing.current_price or listing.starting_price))
+    if listing.current_price:
+        min_required = floor * (1 + MIN_BID_INCREMENT)
+    else:
+        min_required = floor  # first bid just needs to meet starting price
 
     if amount < min_required:
-        raise BadRequestError(f"Minimum bid is {float(min_required):.2f}")
+        raise BadRequestError(f"Minimum bid is ${float(min_required):.2f}")
 
     # Mark previous highest bid as outbid
     prev_result = await db.execute(
         select(Bid).where(Bid.listing_id == listing_id, Bid.status == BidStatus.ACTIVE)
     )
     prev_bid = prev_result.scalar_one_or_none()
-    outbid_user_id = None
     if prev_bid:
         prev_bid.status = BidStatus.OUTBID
-        outbid_user_id = str(prev_bid.bidder_id)
+        prev_bid.is_winning = False
 
     # Place new bid
     new_bid = Bid(
         listing_id=listing_id,
         bidder_id=bidder_id,
         amount=amount,
+        status=BidStatus.ACTIVE,
+        is_winning=True,
         bidder_ip=bidder_ip,
     )
     db.add(new_bid)
@@ -71,7 +73,7 @@ async def place_bid_logic(
     listing.current_price = amount
     listing.bid_count = (listing.bid_count or 0) + 1
 
-    # Soft close — extend if bid in final window
+    # Soft close — extend if bid placed in final window
     if listing.soft_close_enabled:
         time_left = (listing.auction_end_time - datetime.now(timezone.utc)).total_seconds()
         if time_left < SOFT_CLOSE_WINDOW:
@@ -79,8 +81,8 @@ async def place_bid_logic(
 
     await db.commit()
     await db.refresh(new_bid)
-
     return new_bid
+
 
 @router.post("/", response_model=BidResponse, status_code=201)
 async def create_bid(
@@ -89,19 +91,18 @@ async def create_bid(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Place a bid on a listing."""
     client_ip = request.client.host if request.client else None
     return await place_bid_logic(
         listing_id=str(bid_in.listing_id),
         bidder_id=str(current_user.id),
-        amount=bid_in.amount,
+        amount=Decimal(str(bid_in.amount)),
         bidder_ip=client_ip,
         db=db,
     )
 
+
 @router.get("/listing/{listing_id}", response_model=List[BidResponse])
 async def get_bid_history(listing_id: UUID, db: AsyncSession = Depends(get_db)):
-    """Get all bids for a listing, ordered by amount (highest first)."""
     result = await db.execute(
         select(Bid)
         .where(Bid.listing_id == listing_id)
@@ -109,12 +110,12 @@ async def get_bid_history(listing_id: UUID, db: AsyncSession = Depends(get_db)):
     )
     return result.scalars().all()
 
+
 @router.get("/my", response_model=List[BidResponse])
 async def get_my_bids(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all bids placed by the current user."""
     result = await db.execute(
         select(Bid)
         .where(Bid.bidder_id == current_user.id)

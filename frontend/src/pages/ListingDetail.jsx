@@ -52,6 +52,9 @@ export default function ListingDetail() {
   const currentPrice = livePrice || listing.current_price || listing.starting_price
   const canBid = user && (user.role !== "seller" || user?.id !== listing.seller_id)
 
+  // category may be an object {id, name, slug} or a plain string
+  const categoryName = listing.category?.name ?? listing.category ?? null
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -67,8 +70,8 @@ export default function ListingDetail() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge status={listing.status} />
-                {listing.category && (
-                  <span className="text-xs text-gray-400">{listing.category}</span>
+                {categoryName && (
+                  <span className="text-xs text-gray-400">{categoryName}</span>
                 )}
               </div>
               <h1 className="text-2xl font-bold text-gray-900">{listing.title}</h1>
@@ -87,7 +90,6 @@ export default function ListingDetail() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Time left</p>
-                  {/* Fixed: was listing.ends_at — correct DB column is auction_end_time */}
                   <CountdownTimer endsAt={listing.auction_end_time} />
                 </div>
               </div>
@@ -117,7 +119,6 @@ export default function ListingDetail() {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Listed by <span className="font-medium text-gray-700">{listing.seller?.full_name}</span></p>
               <p>Started {formatDate(listing.starts_at)}</p>
-              {/* Fixed: was listing.ends_at — correct DB column is auction_end_time */}
               <p>Ends {formatDate(listing.auction_end_time)}</p>
             </div>
 
