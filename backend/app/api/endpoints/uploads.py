@@ -1,18 +1,19 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from app.core.dependencies import get_current_user
-from app.core.constants import UserRole
+import uuid
+import os
 
 router = APIRouter()
 
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_SIZE_MB = 5
+UPLOAD_DIR = "uploads"
 
 @router.post("/image")
 async def upload_image(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
 ):
-    """Upload an image file (JPEG, PNG, or WebP)."""
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -26,14 +27,18 @@ async def upload_image(
             detail=f"File too large (max {MAX_SIZE_MB}MB)"
         )
 
-    # In production, upload to Cloudflare R2 or similar
-    # For now, return a placeholder URL
-    import uuid
+    # Save file to disk
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_id = str(uuid.uuid4())
-    filename = file.filename.split(".")[0] if file.filename else file_id
-    
+    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    saved_filename = f"{file_id}.{ext}"
+    file_path = os.path.join(UPLOAD_DIR, saved_filename)
+
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
     return {
-        "url": f"/uploads/{file_id}_{filename}",
+        "url": f"/uploads/{saved_filename}",
         "filename": file.filename,
         "size": len(contents),
     }

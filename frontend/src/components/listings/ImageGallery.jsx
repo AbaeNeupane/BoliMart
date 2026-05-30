@@ -1,8 +1,11 @@
 import { useState } from "react"
 
+const getImageUrl = (url) =>
+  !url ? "" : url.startsWith("http") ? url : `http://localhost:8000${url}`
+
 export default function ImageGallery({ images = [] }) {
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const image = images[selectedIndex]
+  const image = getImageUrl(images[selectedIndex])
 
   if (!images.length) {
     return (
@@ -27,7 +30,7 @@ export default function ImageGallery({ images = [] }) {
                 i === selectedIndex ? "border-primary-500" : "border-gray-200"
               }`}
             >
-              <img src={img} alt={`Thumbnail ${i}`} className="w-full h-full object-cover" />
+              <img src={getImageUrl(img)} alt={`Thumbnail ${i}`} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

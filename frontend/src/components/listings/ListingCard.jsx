@@ -3,15 +3,18 @@ import CountdownTimer from "./CountdownTimer"
 import Badge from "../ui/Badge"
 import { formatCurrency } from "../../utils/formatters"
 
+const getImageUrl = (url) =>
+  !url ? "" : url.startsWith("http") ? url : `http://localhost:8000${url}`
+
 export default function ListingCard({ listing }) {
-  const price = listing.current_price || listing.min_price
+  const price = listing.current_price || listing.starting_price
 
   return (
     <Link to={`/listings/${listing.id}`} className="group block bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="aspect-square overflow-hidden bg-gray-100">
         {listing.image_urls?.[0] ? (
           <img
-            src={listing.image_urls[0]}
+            src={getImageUrl(listing.image_urls[0])}
             alt={listing.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -22,7 +25,7 @@ export default function ListingCard({ listing }) {
       <div className="p-4">
         <div className="flex items-center justify-between mb-1">
           <Badge status={listing.status} />
-          <CountdownTimer endsAt={listing.ends_at} />
+          <CountdownTimer endsAt={listing.auction_end_time} />
         </div>
         <h3 className="font-semibold text-gray-900 truncate mt-1">{listing.title}</h3>
         <div className="flex items-center justify-between mt-2">

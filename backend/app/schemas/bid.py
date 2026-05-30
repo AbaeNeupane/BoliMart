@@ -1,16 +1,19 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 class BidCreate(BaseModel):
+    listing_id: UUID
     amount: float
 
 class BidResponse(BaseModel):
-    id: str
-    listing_id: str
-    bidder_id: str
+    id: UUID
+    listing_id: UUID
+    bidder_id: UUID
     amount: float
     status: str
+    is_winning: bool = False
     placed_at: datetime
 
     class Config:

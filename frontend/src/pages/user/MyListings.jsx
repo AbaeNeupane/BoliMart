@@ -1,14 +1,18 @@
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import client from "../../api/client"
+import { cancelListing } from "../../api/listings"
 import Navbar from "../../components/layout/Navbar"
 import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
 import CountdownTimer from "../../components/listings/CountdownTimer"
 import Skeleton from "../../components/ui/Skeleton"
 import { formatCurrency } from "../../utils/formatters"
+import toast from "react-hot-toast"
 
 export default function MyListings() {
+  const queryClient = useQueryClient()
+
   const { data, isLoading } = useQuery({
     queryKey: ["my-listings"],
     queryFn: () => client.get("/listings/my/listings"),
@@ -19,7 +23,27 @@ export default function MyListings() {
     queryFn: () => client.get("/payments/connect/status"),
   })
 
-  // API returns { items, total, page, pages }
+  const deleteMutation = useMutation({
+    mutationFn: (id) => cancelListing(id),
+    onSuccess: () => {
+      toast.success("Listing cancelled")
+      queryClient.invalidateQueries(["my-listings"])
+    },
+    onError: (err) => {
+      const detail = err.response?.data?.detail
+      toast.error(detail || "Failed to cancel listing")
+    },
+  })
+
+  const handleDelete = (listing) => {
+    if (listing.bid_count > 0) {
+      toast.error("Cannot cancel a listing that already has bids")
+      return
+    }
+    if (!window.confirm(`Cancel "${listing.title}"? This cannot be undone.`)) return
+    deleteMutation.mutate(listing.id)
+  }
+
   const listings = data?.data?.items || []
   const stripeConnected = stripeData?.data?.connected
 
@@ -126,12 +150,31 @@ export default function MyListings() {
                     </td>
                     <td className="px-5 py-4 text-gray-600">{listing.bid_count || 0}</td>
                     <td className="px-5 py-4">
-                      <Link
-                        to={`/listings/${listing.id}/edit`}
-                        className="text-primary-500 text-sm hover:underline"
-                      >
-                        Edit
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        {listing.status === "active" && listing.bid_count === 0 && (
+                          <Link
+                            to={`/listings/${listing.id}/edit`}
+                            className="text-primary-500 text-sm hover:underline"
+                          >
+                            Edit
+                          </Link>
+                        )}
+                        {["active", "draft"].includes(listing.status) && (
+                          <button
+                            onClick={() => handleDelete(listing)}
+                            disabled={deleteMutation.isPending}
+                            className="text-red-400 text-sm hover:text-red-600 hover:underline disabled:opacity-40"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <Link
+                          to={`/listings/${listing.id}`}
+                          className="text-gray-400 text-sm hover:text-gray-600 hover:underline"
+                        >
+                          View
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
