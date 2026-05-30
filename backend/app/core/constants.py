@@ -16,6 +16,7 @@ class BidStatus(str, Enum):
     OUTBID = "outbid"
     WON = "won"
     LOST = "lost"
+    CANCELLED = "cancelled"
 
 class TransactionStatus(str, Enum):
     PENDING = "pending"
