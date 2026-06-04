@@ -26,7 +26,7 @@ class User(Base):
     # Relationships
     listings = relationship("Listing", back_populates="seller")
     bids = relationship("Bid", back_populates="bidder")
-    transactions = relationship("Transaction", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user", foreign_keys="Transaction.user_id")
 
 class Listing(Base):
     __tablename__ = "listings"

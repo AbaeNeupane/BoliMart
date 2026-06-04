@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import client from "../../api/client"
 import Navbar from "../../components/layout/Navbar"
 import Button from "../../components/ui/Button"
-import { formatCurrency } from "../../utils/formatters"
+import toast from "react-hot-toast"
 
 export default function Dashboard() {
   const { data: myListings } = useQuery({
@@ -29,6 +29,24 @@ export default function Dashboard() {
   const activeBids = bids.filter((b) => b.status === "active").length
   const wonAuctions = bids.filter((b) => b.status === "won").length
 
+  const handleConnectStripe = async () => {
+    try {
+      const res = await client.post("/payments/connect/onboard")
+      window.location.href = res.data.url
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to connect Stripe")
+    }
+  }
+
+  const handleManageAccount = async () => {
+    try {
+      const res = await client.post("/payments/connect/login")
+      window.open(res.data.url, "_blank")
+    } catch (err) {
+      toast.error("Could not open account dashboard")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -36,20 +54,23 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
         {/* Stripe banner */}
-        {!stripeConnected && (
+        {stripeConnected ? (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-green-800">✅ Bank account connected</p>
+              <p className="text-sm text-green-600">You can receive payouts when your items sell</p>
+            </div>
+            <Button variant="outline" onClick={handleManageAccount}>
+              Manage payout account
+            </Button>
+          </div>
+        ) : (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between">
             <div>
-              <p className="font-medium text-amber-800">Connect your bank account to sell items</p>
-              <p className="text-sm text-amber-600">You need to complete Stripe onboarding before listing products for sale</p>
+              <p className="font-medium text-amber-800">Connect your bank account to receive payouts</p>
+              <p className="text-sm text-amber-600">Complete Stripe onboarding to receive payments when your items sell</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() =>
-                client
-                  .post("/payments/connect/onboard")
-                  .then((r) => (window.location.href = r.data.url))
-              }
-            >
+            <Button variant="outline" onClick={handleConnectStripe}>
               Connect bank
             </Button>
           </div>

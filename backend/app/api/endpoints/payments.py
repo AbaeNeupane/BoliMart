@@ -37,9 +37,16 @@ async def onboard_payout_account(
     current_user: User = Depends(get_current_user),
 ):
     s = get_stripe()
-
     try:
-        # Create a Stripe Connect Express account if user doesn't have one yet
+        # If stored account doesn't exist on Stripe, clear it and create new one
+        if current_user.stripe_account_id:
+            try:
+                s.Account.retrieve(current_user.stripe_account_id)
+            except Exception:
+                # Account not found — clear it so we create a new one
+                current_user.stripe_account_id = None
+                await db.commit()
+
         if not current_user.stripe_account_id:
             account = s.Account.create(
                 type="express",
@@ -52,21 +59,18 @@ async def onboard_payout_account(
             current_user.stripe_account_id = account.id
             await db.commit()
 
-        # Create onboarding link
         account_link = s.AccountLink.create(
             account=current_user.stripe_account_id,
             refresh_url=f"{settings.FRONTEND_URL}/dashboard?stripe=refresh",
             return_url=f"{settings.FRONTEND_URL}/dashboard?stripe=success",
             type="account_onboarding",
         )
-
         return {"url": account_link.url, "stripe_account_id": current_user.stripe_account_id}
 
-    except Exception as e:
-        print(f"STRIPE ERROR: {e}")
-    raise BadRequestError(f"Stripe error: {str(e)}")
-
-
+    except Exception as err:
+        print(f"STRIPE ERROR: {err}")
+        raise BadRequestError(f"Stripe error: {str(err)}")
+    
 # ---------------------------------------------------------------------------
 # GET /payments/connect/status
 # ---------------------------------------------------------------------------
@@ -79,21 +83,32 @@ async def stripe_status(
         return {"connected": False, "stripe_account_id": None}
 
     try:
-        s = get_stripe()
-        account = s.Account.retrieve(current_user.stripe_account_id)
-        connected = (
-            account.get("charges_enabled", False)
-            and account.get("payouts_enabled", False)
-        )
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        account = stripe.Account.retrieve(current_user.stripe_account_id)
+        print(f"STRIPE ACCOUNT: charges={account.charges_enabled} payouts={account.payouts_enabled}")
+        connected = bool(account.charges_enabled and account.payouts_enabled)
         return {
             "connected": connected,
             "stripe_account_id": current_user.stripe_account_id,
-            "charges_enabled": account.get("charges_enabled"),
-            "payouts_enabled": account.get("payouts_enabled"),
+            "charges_enabled": account.charges_enabled,
+            "payouts_enabled": account.payouts_enabled,
         }
-    except Exception:
+    except Exception as e:
+        print(f"STRIPE STATUS ERROR: {e}")
         return {"connected": False, "stripe_account_id": current_user.stripe_account_id}
-
+    
+@router.post("/connect/login")
+async def connect_login(
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.stripe_account_id:
+        raise BadRequestError("No Stripe account connected")
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        login_link = stripe.Account.create_login_link(current_user.stripe_account_id)
+        return {"url": login_link.url}
+    except Exception as e:
+        raise BadRequestError(f"Stripe error: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # POST /payments/checkout/{listing_id} — create payment intent
