@@ -24,6 +24,7 @@ export default function ListingDetail() {
   const { data, isLoading } = useQuery({
     queryKey: ["listing", id],
     queryFn: () => getListing(id),
+    refetchInterval: 30000,
   })
 
   const listing = data?.data

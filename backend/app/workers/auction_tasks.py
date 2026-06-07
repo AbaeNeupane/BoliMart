@@ -45,12 +45,14 @@ def close_ended_auctions():
 
         closed = 0
         for listing in ended:
-            # Find winning bid (highest active bid)
+            # FIX 1: Find winning bid by picking the highest bid regardless of
+            # whether it's ACTIVE or OUTBID — edge cases (soft-close, race
+            # conditions) can leave the top bid in either state.
             winning_bid = db.execute(
                 select(Bid).where(
                     and_(
                         Bid.listing_id == listing.id,
-                        Bid.status == BidStatus.ACTIVE,
+                        Bid.status.in_([BidStatus.ACTIVE, BidStatus.OUTBID]),
                     )
                 ).order_by(Bid.amount.desc())
             ).scalars().first()
@@ -63,18 +65,21 @@ def close_ended_auctions():
                 winning_bid.status = BidStatus.WON
                 winning_bid.is_winning = True
 
-                # Mark all other bids as lost
+                # FIX 2: Mark ALL other bids (ACTIVE or OUTBID) as LOST.
+                # The original code only filtered for OUTBID, which caused any
+                # bid still sitting as ACTIVE to be left untouched in the DB.
                 other_bids = db.execute(
                     select(Bid).where(
                         and_(
                             Bid.listing_id == listing.id,
                             Bid.id != winning_bid.id,
-                            Bid.status == BidStatus.OUTBID,
+                            Bid.status.in_([BidStatus.ACTIVE, BidStatus.OUTBID]),
                         )
                     )
                 ).scalars().all()
                 for bid in other_bids:
                     bid.status = BidStatus.LOST
+                    bid.is_winning = False
 
                 # Create transaction record
                 amount = Decimal(str(winning_bid.amount))
@@ -134,9 +139,17 @@ def close_ended_auctions():
 
 @celery_app.task(name="app.workers.auction_tasks.end_auction_task")
 def end_auction_task(listing_id: str):
-    """Manually trigger closing a specific auction."""
+    """
+    Triggered precisely when a specific auction's timer expires.
+    Scheduled via apply_async(countdown=...) at listing creation time.
+    This gives exact on-time closure instead of waiting up to 60s for Beat.
+    """
     from app.models.listing import Listing
-    from app.core.constants import ListingStatus
+    from app.models.bid import Bid
+    from app.models.transaction import Transaction
+    from app.core.constants import ListingStatus, BidStatus
+
+    COMMISSION_RATE = Decimal("0.10")
 
     db = get_sync_session()
     try:
@@ -144,9 +157,96 @@ def end_auction_task(listing_id: str):
             select(Listing).where(Listing.id == listing_id)
         ).scalar_one_or_none()
 
-        if listing and listing.status == ListingStatus.ACTIVE:
-            close_ended_auctions.delay()
-        return f"Triggered close for listing {listing_id}"
+        if not listing:
+            return f"Listing {listing_id} not found"
+
+        if listing.status != ListingStatus.ACTIVE:
+            return f"Listing {listing_id} is already {listing.status}, skipping"
+
+        # Double-check the time has actually passed (soft-close may have extended it)
+        now = datetime.now(timezone.utc)
+        end_time = listing.auction_end_time
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=timezone.utc)
+
+        if end_time > now:
+            # Soft-close extended the auction — reschedule for the new end time
+            new_delay = (end_time - now).total_seconds()
+            end_auction_task.apply_async(args=[listing_id], countdown=int(new_delay) + 1)
+            return f"Auction {listing_id} extended, rescheduled in {int(new_delay)}s"
+
+        # FIX: Same logic as close_ended_auctions but for a single listing
+        winning_bid = db.execute(
+            select(Bid).where(
+                and_(
+                    Bid.listing_id == listing.id,
+                    Bid.status.in_([BidStatus.ACTIVE, BidStatus.OUTBID]),
+                )
+            ).order_by(Bid.amount.desc())
+        ).scalars().first()
+
+        if winning_bid:
+            listing.status = ListingStatus.SOLD
+            winning_bid.status = BidStatus.WON
+            winning_bid.is_winning = True
+
+            other_bids = db.execute(
+                select(Bid).where(
+                    and_(
+                        Bid.listing_id == listing.id,
+                        Bid.id != winning_bid.id,
+                        Bid.status.in_([BidStatus.ACTIVE, BidStatus.OUTBID]),
+                    )
+                )
+            ).scalars().all()
+            for bid in other_bids:
+                bid.status = BidStatus.LOST
+                bid.is_winning = False
+
+            amount = Decimal(str(winning_bid.amount))
+            commission = (amount * COMMISSION_RATE).quantize(Decimal("0.01"))
+            payout = amount - commission
+
+            existing_tx = db.execute(
+                select(Transaction).where(Transaction.listing_id == listing.id)
+            ).scalar_one_or_none()
+
+            if not existing_tx:
+                transaction = Transaction(
+                    listing_id=listing.id,
+                    bidder_id=winning_bid.bidder_id,
+                    user_id=winning_bid.bidder_id,
+                    owner_id=listing.seller_id,
+                    winning_bid_id=winning_bid.id,
+                    amount=amount,
+                    commission_rate=COMMISSION_RATE,
+                    commission_amount=commission,
+                    owner_payout=payout,
+                    status="pending",
+                    transaction_type="bid_payment",
+                )
+                db.add(transaction)
+
+            send_winner_email.delay(
+                str(winning_bid.bidder_id),
+                str(listing.id),
+                listing.title,
+                float(winning_bid.amount),
+            )
+            send_seller_email.delay(
+                str(listing.seller_id),
+                listing.title,
+                float(winning_bid.amount),
+            )
+        else:
+            listing.status = ListingStatus.ENDED
+
+        db.commit()
+        return f"Closed listing {listing_id}, status={listing.status}"
+
+    except Exception as e:
+        db.rollback()
+        raise e
     finally:
         db.close()
 

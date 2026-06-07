@@ -170,6 +170,8 @@ async def get_listing(
 
 # ---------------------------------------------------------------------------
 # POST /listings — create a new listing
+# FIX: Schedule end_auction_task precisely at auction_end_time so the DB
+#      updates exactly when the timer hits zero, not up to 60s later.
 # ---------------------------------------------------------------------------
 @router.post("/", response_model=ListingResponse, status_code=status.HTTP_201_CREATED)
 async def create_listing(
@@ -192,7 +194,7 @@ async def create_listing(
         if not cat_result.scalar_one_or_none():
             raise NotFoundError("Category not found")
 
-    # Ensure starts_at is in the future (or now)
+    # Ensure timestamps are timezone-aware
     starts_at = data.starts_at
     if starts_at.tzinfo is None:
         starts_at = starts_at.replace(tzinfo=timezone.utc)
@@ -226,6 +228,19 @@ async def create_listing(
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
+
+    # Schedule the auction close task to fire exactly when the timer ends.
+    # This works alongside Beat (which acts as a safety net every 60s).
+    try:
+        from app.workers.auction_tasks import end_auction_task
+        delay_seconds = (auction_end_time - now).total_seconds()
+        end_auction_task.apply_async(
+            args=[str(listing.id)],
+            countdown=int(delay_seconds) + 1,  # +1s buffer to avoid timezone edge cases
+        )
+    except Exception as e:
+        # Never fail listing creation because of Celery
+        print(f"Warning: Could not schedule end_auction_task for {listing.id}: {e}")
 
     # Re-fetch with relationships loaded
     result = await db.execute(
