@@ -5,12 +5,21 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import os
 
+# Load .env explicitly so Celery workers on Windows pick up DATABASE_URL
+from dotenv import load_dotenv
+load_dotenv()
+
 DATABASE_URL = os.getenv("DATABASE_URL", "").replace(
     "postgresql+asyncpg://", "postgresql+psycopg2://"
 )
 
 
 def get_sync_session():
+    if not DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Make sure your .env file exists in the backend "
+            "directory and contains a valid DATABASE_URL."
+        )
     engine = create_engine(DATABASE_URL)
     return Session(engine)
 
@@ -45,9 +54,8 @@ def close_ended_auctions():
 
         closed = 0
         for listing in ended:
-            # FIX 1: Find winning bid by picking the highest bid regardless of
-            # whether it's ACTIVE or OUTBID — edge cases (soft-close, race
-            # conditions) can leave the top bid in either state.
+            # Find winning bid — pick the highest regardless of ACTIVE or OUTBID
+            # status to handle edge cases from soft-close or race conditions
             winning_bid = db.execute(
                 select(Bid).where(
                     and_(
@@ -65,9 +73,9 @@ def close_ended_auctions():
                 winning_bid.status = BidStatus.WON
                 winning_bid.is_winning = True
 
-                # FIX 2: Mark ALL other bids (ACTIVE or OUTBID) as LOST.
-                # The original code only filtered for OUTBID, which caused any
-                # bid still sitting as ACTIVE to be left untouched in the DB.
+                # Mark ALL other bids (ACTIVE or OUTBID) as LOST
+                # Bug fix: original code only filtered OUTBID, leaving any
+                # remaining ACTIVE bids untouched in the database
                 other_bids = db.execute(
                     select(Bid).where(
                         and_(
@@ -175,7 +183,7 @@ def end_auction_task(listing_id: str):
             end_auction_task.apply_async(args=[listing_id], countdown=int(new_delay) + 1)
             return f"Auction {listing_id} extended, rescheduled in {int(new_delay)}s"
 
-        # FIX: Same logic as close_ended_auctions but for a single listing
+        # Same closing logic as close_ended_auctions but for a single listing
         winning_bid = db.execute(
             select(Bid).where(
                 and_(
