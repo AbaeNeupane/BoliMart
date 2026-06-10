@@ -21,10 +21,14 @@ export const useAuthStore = create(
     }),
     {
       name: "auth-storage",
+      // Only persist the tokens — NOT the user object.
+      // On restart, the app will always re-fetch /users/me to get fresh user
+      // data. This prevents the ghost login state where a stale user object
+      // exists in localStorage but the token is expired or the backend is down.
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
-        user: state.user,
+        // user is intentionally excluded — always fetched fresh on startup
       }),
     }
   )

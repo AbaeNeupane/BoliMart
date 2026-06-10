@@ -1,10 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "react-hot-toast"
+import { useEffect, useState, useCallback } from "react"
 
 import ProtectedRoute from "./components/auth/ProtectedRoute"
 import RoleGuard from "./components/auth/RoleGuard"
 import { ROLES } from "./utils/constants"
+import { useAuthStore } from "./store/authStore"
+import { getMe } from "./api/auth"
 
 import Home from "./pages/Home"
 import ListingDetail from "./pages/ListingDetail"
@@ -30,46 +33,76 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 })
 
+function AuthInitializer({ children }) {
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const setUser = useAuthStore((s) => s.setUser)
+  const logout = useAuthStore((s) => s.logout)
+  const [checking, setChecking] = useState(() => !!accessToken)
+
+  const validate = useCallback(() => {
+    if (!accessToken) return
+    getMe()
+      .then((res) => setUser(res.data))
+      .catch(() => logout())
+      .finally(() => setChecking(false))
+  }, [accessToken, setUser, logout])
+
+  useEffect(() => {
+    validate()
+  }, [validate])
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  return children
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<Home />} />
-          <Route path="/listings/:id" element={<ListingDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+        <AuthInitializer>
+          <Toaster position="top-right" />
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<Home />} />
+            <Route path="/listings/:id" element={<ListingDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
-          {/* User (Buyer + Seller) */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<RoleGuard roles={[ROLES.USER, ROLES.ADMIN]} />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/my-listings" element={<MyListings />} />
-              <Route path="/listings/create" element={<CreateListing />} />
-              <Route path="/listings/:id/edit" element={<EditListing />} />
-              <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
-              <Route path="/my-bids" element={<MyBids />} />
-              <Route path="/checkout/:listingId" element={<Checkout />} />
+            {/* User (Buyer + Seller) */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<RoleGuard roles={[ROLES.USER, ROLES.ADMIN]} />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/my-listings" element={<MyListings />} />
+                <Route path="/listings/create" element={<CreateListing />} />
+                <Route path="/listings/:id/edit" element={<EditListing />} />
+                <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
+                <Route path="/my-bids" element={<MyBids />} />
+                <Route path="/checkout/:listingId" element={<Checkout />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Admin */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<RoleGuard roles={[ROLES.ADMIN]} />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/listings" element={<AdminListings />} />
-              <Route path="/admin/transactions" element={<AdminTransactions />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
+            {/* Admin */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<RoleGuard roles={[ROLES.ADMIN]} />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/listings" element={<AdminListings />} />
+                <Route path="/admin/transactions" element={<AdminTransactions />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthInitializer>
       </BrowserRouter>
     </QueryClientProvider>
   )
 }
-

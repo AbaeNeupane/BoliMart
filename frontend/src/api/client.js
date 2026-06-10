@@ -14,20 +14,16 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-// Only logout on 401 for actual auth failures
+// Log out and redirect on any 401.
+// The isStubEndpoint exception has been removed — all endpoints are real
+// now. The ghost login bug was caused by swallowing 401s on dashboard
+// endpoints, which let expired tokens persist indefinitely.
 client.interceptors.response.use(
   (res) => res,
   async (error) => {
-    const url = error.config?.url || ""
     const status = error.response?.status
 
-    // These endpoints are stubs or not yet implemented — don't logout
-    const isStubEndpoint =
-      url.includes("/bids/my") ||
-      url.includes("/payments/connect") ||
-      url.includes("/listings/my")
-
-    if (status === 401 && !isStubEndpoint) {
+    if (status === 401) {
       useAuthStore.getState().logout()
       window.location.href = "/login"
     }
