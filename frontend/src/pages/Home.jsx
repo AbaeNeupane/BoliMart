@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { getListings } from "../api/listings"
 import ListingGrid from "../components/listings/ListingGrid"
@@ -17,19 +17,15 @@ const SORT_OPTIONS = [
 
 export default function Home() {
   const location = useLocation()
+  const navigate = useNavigate()
   const params = new URLSearchParams(location.search)
 
-  const [search, setSearch]     = useState(() => params.get("q") || "")
-  const [category, setCategory] = useState(() => params.get("category") || "")
-  const [sort, setSort]         = useState("ending_soon")
-  const [page, setPage]         = useState(() => Number(params.get("page") || 1))
-  const debouncedSearch         = useDebounce(search, 400)
+  const [search, setSearch] = useState(() => params.get("q") || "")
+  const [sort, setSort] = useState("ending_soon")
+  const debouncedSearch = useDebounce(search, 400)
 
-  useEffect(() => {
-    setSearch(params.get("q") || "")
-    setCategory(params.get("category") || "")
-    setPage(Number(params.get("page") || 1))
-  }, [location.search])
+  const category = params.get("category") || ""
+  const page = Number(params.get("page") || 1)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["listings", debouncedSearch, category, sort, page],
@@ -49,10 +45,34 @@ export default function Home() {
   const listings = data?.items || []
   const totalPages = data?.pages || 1
 
-  // Reset to page 1 whenever filters change
-  const handleCategory = (cat) => { setCategory(cat === "All" ? "" : cat); setPage(1) }
-  const handleSort     = (s)   => { setSort(s); setPage(1) }
-  const handleSearch   = (e)   => { setSearch(e.target.value); setPage(1) }
+  const handleCategory = (cat) => {
+    const nextParams = new URLSearchParams(location.search)
+    if (cat === "All") {
+      nextParams.delete("category")
+    } else {
+      nextParams.set("category", cat)
+    }
+    nextParams.delete("page")
+    navigate(`/?${nextParams.toString()}`)
+  }
+
+  const handlePageChange = (newPage) => {
+    const nextParams = new URLSearchParams(location.search)
+    if (newPage <= 1) {
+      nextParams.delete("page")
+    } else {
+      nextParams.set("page", String(newPage))
+    }
+    navigate(`/?${nextParams.toString()}`)
+  }
+
+  const handleSort = (s) => {
+    setSort(s)
+  }
+
+  const handleSearch = (e) => {
+    setSearch(e.target.value)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,7 +138,7 @@ export default function Home() {
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
               disabled={page === 1}
               className="px-4 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
             >
@@ -128,7 +148,7 @@ export default function Home() {
               Page {page} of {totalPages}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
               disabled={page === totalPages}
               className="px-4 py-2 rounded-lg border border-gray-200 text-sm disabled:opacity-40"
             >

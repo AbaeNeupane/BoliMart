@@ -246,7 +246,7 @@ export default function Navbar() {
                 key={cat.id}
                 to={`/?category=${encodeURIComponent(cat.name)}`}
                 className={`flex-shrink-0 px-3 py-2 text-sm font-medium rounded transition-colors whitespace-nowrap ${
-                  location.search.includes(cat.name)
+                  activeCategory === cat.name
                     ? "text-white bg-gray-600"
                     : "text-gray-200 hover:text-white hover:bg-gray-600"
                 }`}
