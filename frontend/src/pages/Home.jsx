@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useLocation } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { getListings } from "../api/listings"
-import Navbar from "../components/layout/Navbar"
 import ListingGrid from "../components/listings/ListingGrid"
 import Spinner from "../components/ui/Spinner"
 import Input from "../components/ui/Input"
@@ -16,11 +16,20 @@ const SORT_OPTIONS = [
 ]
 
 export default function Home() {
-  const [search, setSearch]     = useState("")
-  const [category, setCategory] = useState("")
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+
+  const [search, setSearch]     = useState(() => params.get("q") || "")
+  const [category, setCategory] = useState(() => params.get("category") || "")
   const [sort, setSort]         = useState("ending_soon")
-  const [page, setPage]         = useState(1)
+  const [page, setPage]         = useState(() => Number(params.get("page") || 1))
   const debouncedSearch         = useDebounce(search, 400)
+
+  useEffect(() => {
+    setSearch(params.get("q") || "")
+    setCategory(params.get("category") || "")
+    setPage(Number(params.get("page") || 1))
+  }, [location.search])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["listings", debouncedSearch, category, sort, page],
@@ -47,7 +56,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
 
       {/* Hero */}
       <div className="bg-white border-b border-gray-200 py-10">

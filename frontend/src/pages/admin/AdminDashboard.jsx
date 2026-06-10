@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
 import client from "../../api/client"
-import Navbar from "../../components/layout/Navbar"
 import { Link } from "react-router-dom"
 import { formatCurrency } from "../../utils/formatters"
 
@@ -17,7 +16,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

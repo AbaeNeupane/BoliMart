@@ -4,7 +4,6 @@ import { getListing } from "../api/listings"
 import { placeBid } from "../api/bids"
 import { useAuctionSocket } from "../hooks/useAuctionSocket"
 import { useAuthStore } from "../store/authStore"
-import Navbar from "../components/layout/Navbar"
 import CountdownTimer from "../components/listings/CountdownTimer"
 import BidHistory from "../components/listings/BidHistory"
 import BidForm from "../components/listings/BidForm"
@@ -47,7 +46,7 @@ export default function ListingDetail() {
     onError: (err) => toast.error(err.response?.data?.detail || "Failed to place bid"),
   })
 
-  if (isLoading) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex justify-center pt-20"><Spinner /></div></div>
+  if (isLoading) return <div className="min-h-screen bg-gray-50"><div className="flex justify-center pt-20"><Spinner /></div></div>
   if (!listing) return null
 
   const currentPrice = livePrice || listing.current_price || listing.starting_price
@@ -58,7 +57,6 @@ export default function ListingDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left — Images */}

@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react"
 
 import ProtectedRoute from "./components/auth/ProtectedRoute"
 import RoleGuard from "./components/auth/RoleGuard"
+import Navbar from "./components/layout/Navbar"
 import { ROLES } from "./utils/constants"
 import { useAuthStore } from "./store/authStore"
 import { getMe } from "./api/auth"
@@ -68,6 +69,7 @@ export default function App() {
       <BrowserRouter>
         <AuthInitializer>
           <Toaster position="top-right" />
+          <Navbar />
           <Routes>
             {/* Public */}
             <Route path="/" element={<Home />} />

@@ -9,7 +9,6 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js"
-import Navbar from "../../components/layout/Navbar"
 import Button from "../../components/ui/Button"
 import Spinner from "../../components/ui/Spinner"
 import { formatCurrency } from "../../utils/formatters"
@@ -114,7 +113,6 @@ export default function Checkout() {
   if (listingLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="flex justify-center pt-20"><Spinner /></div>
       </div>
     )
@@ -127,7 +125,6 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h1>
 

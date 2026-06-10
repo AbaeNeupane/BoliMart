@@ -4,7 +4,6 @@ import { getListing } from "../../api/listings"
 import { createCheckout } from "../../api/payments"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
-import Navbar from "../../components/layout/Navbar"
 import Button from "../../components/ui/Button"
 import { formatCurrency } from "../../utils/formatters"
 import toast from "react-hot-toast"
@@ -61,7 +60,6 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h1>
 

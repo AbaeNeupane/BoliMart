@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import client from "../../api/client"
-import Navbar from "../../components/layout/Navbar"
 import Button from "../../components/ui/Button"
 import toast from "react-hot-toast"
 
@@ -49,7 +48,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 

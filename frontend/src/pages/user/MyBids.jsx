@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import { getMyBids } from "../../api/bids"
 import client from "../../api/client"
-import Navbar from "../../components/layout/Navbar"
 import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
 import { formatCurrency, formatDate } from "../../utils/formatters"
@@ -37,7 +36,6 @@ export default function MyBids() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">My Bids</h1>
 

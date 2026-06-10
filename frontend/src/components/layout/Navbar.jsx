@@ -10,6 +10,8 @@ export default function Navbar() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const activeCategory = params.get("category")
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -232,7 +234,7 @@ export default function Navbar() {
             <Link
               to="/"
               className={`flex-shrink-0 px-3 py-2 text-sm font-medium rounded transition-colors whitespace-nowrap ${
-                location.pathname === "/" && !location.search
+                location.pathname === "/" && !activeCategory
                   ? "text-white bg-gray-600"
                   : "text-gray-200 hover:text-white hover:bg-gray-600"
               }`}

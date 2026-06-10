@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
 import client from "../../api/client"
 import { cancelListing } from "../../api/listings"
-import Navbar from "../../components/layout/Navbar"
 import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
 import CountdownTimer from "../../components/listings/CountdownTimer"
@@ -49,7 +48,6 @@ export default function MyListings() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">My Listings</h1>
