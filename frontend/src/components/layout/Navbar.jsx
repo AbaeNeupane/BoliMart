@@ -53,10 +53,25 @@ export default function Navbar() {
     setMobileOpen(false)
   }
 
+  const handleCategory = (cat) => {
+    const nextParams = new URLSearchParams(location.search)
+    if (cat === "All") {
+      nextParams.delete("category")
+    } else {
+      nextParams.set("category", cat)
+    }
+    nextParams.delete("page")
+    navigate(`/?${nextParams.toString()}`)
+    setMobileOpen(false)
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`)
+      const nextParams = new URLSearchParams(location.search)
+      nextParams.set("q", searchQuery.trim())
+      nextParams.delete("page")
+      navigate(`/?${nextParams.toString()}`)
       setSearchQuery("")
       setMobileSearchOpen(false)
     }
@@ -71,7 +86,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             to="/"
-            className="flex-shrink-0 flex items-center border-2 border-transparent hover:border-white rounded px-1 py-0.5 transition-colors"
+            className="flex-shrink-0 flex items-center border-2 border-transparent hover:border-transparent rounded px-1 py-0.5 transition-colors"
           >
             <img src={logo} alt="Boli" className="h-8 w-auto brightness-100 " />
           </Link>
@@ -96,7 +111,7 @@ export default function Navbar() {
               </button>
             </form>
 
-            <div className="hidden [@media(max-width:450px)]:hidden relative">
+            <div className="hidden [@media(max-width:450px)]:flex relative">
               <button
                 type="button"
                 onClick={() => setMobileSearchOpen((o) => !o)}
@@ -233,15 +248,9 @@ export default function Navbar() {
               <>
                 <Link
                   to="/login"
-                  className="flex flex-col items-start px-2 py-1 rounded border-2 border-transparent hover:border-white transition-colors text-white"
+                  className="hidden sm:flex items-center px-3 py-1.5 text-sm font-semibold bg-primary-500 hover:bg-primary-600 text-white rounded transition-colors"
                 >
-                  <span className="text-xs text-gray-300 leading-tight">Hello, sign in</span>
-                  <span className="text-sm font-bold leading-tight flex items-center gap-1">
-                    Account
-                    <svg className="w-3 h-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                    </svg>
-                  </span>
+                  Sign in
                 </Link>
                 <Link
                   to="/register"
@@ -250,19 +259,6 @@ export default function Navbar() {
                   Get started
                 </Link>
               </>
-            )}
-
-            {/* Sell button - show above 450px, hide hamburger */}
-            {user?.role === ROLES.USER && (
-              <Link
-                to="/listings/create"
-                className="hidden [@media(min-width:451px)]:flex items-center justify-center w-10 h-10 bg-white text-gray-900 rounded-full hover:bg-gray-200 transition-colors"
-                title="Create listing"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </Link>
             )}
 
             {/* Mobile hamburger */}
@@ -339,19 +335,20 @@ export default function Navbar() {
             </button>
           </form>
 
-          {/* Sell item link */}
-          {user?.role === ROLES.USER && (
-            <Link
-              to="/listings/create"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 px-3 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 border-b border-gray-100"
+          {/* Category selector */}
+          <div className="px-3 py-3 border-b border-gray-100">
+            <label className="block text-sm font-medium text-gray-700">Select category</label>
+            <select
+              value={activeCategory || "All"}
+              onChange={(e) => handleCategory(e.target.value)}
+              className="mt-2 block w-full rounded-md border-gray-300 bg-white text-sm text-gray-700 focus:border-primary-500 focus:ring-primary-500"
             >
-              <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create listing
-            </Link>
-          )}
+              <option value="All">All auctions</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
     </header>

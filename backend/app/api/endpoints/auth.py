@@ -11,9 +11,11 @@ from app.database.session import get_db
 from app.models.user import User
 from app.core.security import (
     create_access_token,
+    create_refresh_token,
     verify_password,
     get_password_hash,
-    verify_token
+    verify_token,
+    decode_token,
 )
 from app.core.email import email_service
 from app.core.config import settings
@@ -37,7 +39,11 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 class VerifyEmailRequest(BaseModel):
     token: str
@@ -124,8 +130,41 @@ async def login(
     access_token = create_access_token(
         subject=str(user.id), expires_delta=access_token_expires
     )
+    refresh_token = create_refresh_token(subject=str(user.id))
 
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(request: RefreshRequest):
+    payload = decode_token(request.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        subject=user_id, expires_delta=access_token_expires
+    )
+    refresh_token = create_refresh_token(subject=user_id)
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+    )
 
 @router.post("/verify-email")
 async def verify_email(request: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):

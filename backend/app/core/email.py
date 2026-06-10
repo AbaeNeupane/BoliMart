@@ -8,7 +8,7 @@ class EmailService:
 
     async def send_verification_email(self, email: str, verification_token: str) -> Dict[str, Any]:
         """Send email verification link to user"""
-        verification_url = f"http://localhost:5173/verify-email?token={verification_token}"
+        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
 
         params = {
             "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
@@ -41,7 +41,7 @@ class EmailService:
 
     async def send_password_reset_email(self, email: str, reset_token: str) -> Dict[str, Any]:
         """Send password reset email"""
-        reset_url = f"http://localhost:5173/reset-password?token={reset_token}"
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
 
         params = {
             "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
