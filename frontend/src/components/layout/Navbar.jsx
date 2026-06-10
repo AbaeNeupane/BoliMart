@@ -13,9 +13,11 @@ export default function Navbar() {
   const params = new URLSearchParams(location.search)
   const activeCategory = params.get("category")
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const searchInputRef = useRef(null)
 
   const dashboardPath = {
     [ROLES.ADMIN]: "/admin",
@@ -39,6 +41,12 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler)
   }, [])
 
+  useEffect(() => {
+    if (mobileSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [mobileSearchOpen])
+
   const handleLogout = () => {
     logout()
     navigate("/login")
@@ -50,6 +58,7 @@ export default function Navbar() {
     if (searchQuery.trim()) {
       navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery("")
+      setMobileSearchOpen(false)
     }
   }
 
@@ -68,23 +77,72 @@ export default function Navbar() {
           </Link>
 
           {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex flex-1 max-w-2xl">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search auctions..."
-              className="flex-1 h-10 px-3 text-sm text-gray-900 bg-white rounded-l-md border-0 outline-none placeholder-gray-400 min-w-0"
-            />
-            <button
-              type="submit"
-              className="h-10 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-r-md transition-colors flex-shrink-0"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-              </svg>
-            </button>
-          </form>
+          <div className="flex flex-1 items-center max-w-2xl">
+            <form onSubmit={handleSearch} className="flex flex-1 [@media(max-width:450px)]:hidden">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search auctions..."
+                className="flex-1 h-10 px-3 text-sm text-gray-900 bg-white rounded-l-md border-0 outline-none placeholder-gray-400 min-w-0"
+              />
+              <button
+                type="submit"
+                className="h-10 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-r-md transition-colors flex-shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+              </button>
+            </form>
+
+            <div className="hidden [@media(max-width:450px)]:hidden relative">
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen((o) => !o)}
+                className="h-10 w-10 flex items-center justify-center rounded-md bg-white text-gray-900 hover:bg-gray-200 transition-colors"
+                aria-label="Open search"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                </svg>
+              </button>
+
+              {mobileSearchOpen && (
+                <form
+                  onSubmit={handleSearch}
+                  className="absolute right-0 top-full mt-2 w-screen max-w-xs bg-white rounded-xl shadow-lg p-2 flex items-center gap-2"
+                >
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search auctions..."
+                    className="flex-1 h-10 px-3 text-sm text-gray-900 bg-gray-100 rounded-lg border border-gray-200 outline-none placeholder-gray-500"
+                  />
+                  <button
+                    type="submit"
+                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileSearchOpen(false)}
+                    className="h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                    aria-label="Close search"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
 
           {/* Right side */}
           <div className="flex-shrink-0 flex items-center gap-1 ml-auto">
@@ -94,15 +152,11 @@ export default function Navbar() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen((o) => !o)}
-                    className="flex flex-col items-start px-2 py-1 rounded border-2 border-transparent hover:border-white transition-colors text-white"
+                    className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-white hover:bg-gray-700 transition-colors text-white"
                   >
-                    <span className="text-xs text-gray-300 leading-tight">Hello, {user.full_name?.split(" ")[0] || user.username}</span>
-                    <span className="text-sm font-bold leading-tight flex items-center gap-1">
-                      Account
-                      <svg className="w-3 h-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                      </svg>
-                    </span>
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 12a3 3 0 100-6 3 3 0 000 6zm0 2c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z" />
+                    </svg>
                   </button>
 
                   {dropdownOpen && (
@@ -174,15 +228,6 @@ export default function Navbar() {
                     </div>
                   )}
                 </div>
-
-                {/* Sell button */}
-                <Link
-                  to="/listings/create"
-                  className="hidden sm:flex flex-col items-start px-2 py-1 rounded border-2 border-transparent hover:border-white transition-colors text-white"
-                >
-                  <span className="text-xs text-gray-300 leading-tight">Start</span>
-                  <span className="text-sm font-bold leading-tight">Selling</span>
-                </Link>
               </>
             ) : (
               <>
@@ -207,10 +252,23 @@ export default function Navbar() {
               </>
             )}
 
+            {/* Sell button - show above 450px, hide hamburger */}
+            {user?.role === ROLES.USER && (
+              <Link
+                to="/listings/create"
+                className="hidden [@media(min-width:451px)]:flex items-center justify-center w-10 h-10 bg-white text-gray-900 rounded-full hover:bg-gray-200 transition-colors"
+                title="Create listing"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </Link>
+            )}
+
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
-              className="sm:hidden p-2 text-white hover:bg-gray-700 rounded transition-colors"
+              className="[@media(max-width:450px)]:flex hidden p-2 text-white hover:bg-gray-700 rounded transition-colors"
               aria-label="Toggle menu"
             >
               {mobileOpen ? (
@@ -261,7 +319,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="sm:hidden bg-white border-t border-gray-200 shadow-lg">
+        <div className="[@media(max-width:450px)]:block hidden bg-white border-t border-gray-200 shadow-lg">
           {/* Mobile search */}
           <form onSubmit={handleSearch} className="flex p-3 border-b border-gray-100">
             <input
@@ -281,47 +339,19 @@ export default function Navbar() {
             </button>
           </form>
 
-          <div className="p-3 space-y-1">
-            {user ? (
-              <>
-                <div className="flex items-center gap-3 px-3 py-2 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">
-                    {user.full_name?.[0]?.toUpperCase() || "?"}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{user.full_name || user.username}</p>
-                    <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-                  </div>
-                </div>
-                {[
-                  { to: dashboardPath, label: "Dashboard" },
-                  { to: "/my-bids", label: "My bids" },
-                  { to: "/my-listings", label: "My listings" },
-                  { to: "/listings/create", label: "Sell an item" },
-                ].map(({ to, label }) => (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    {label}
-                  </Link>
-                ))}
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border-t border-gray-100 mt-1"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="flex px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Sign in</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="flex px-3 py-2.5 text-sm font-semibold bg-primary-500 text-white rounded-lg hover:bg-primary-600">Get started</Link>
-              </>
-            )}
-          </div>
+          {/* Sell item link */}
+          {user?.role === ROLES.USER && (
+            <Link
+              to="/listings/create"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-3 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 border-b border-gray-100"
+            >
+              <svg className="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create listing
+            </Link>
+          )}
         </div>
       )}
     </header>
