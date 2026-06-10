@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 from app.database.session import get_db
 from app.models.user import User
@@ -21,13 +21,30 @@ from app.core.email import email_service
 from app.core.config import settings
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
     password: str
     full_name: str = None
+
+    @field_validator("username")
+    @classmethod
+    def normalize_username(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 3:
+            raise ValueError("Username must be at least 3 characters")
+        if " " in normalized:
+            raise ValueError("Username cannot contain spaces")
+        return normalized
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return value
 
 class UserResponse(BaseModel):
     id: str
@@ -126,6 +143,12 @@ async def login(
             detail="Inactive user"
         )
 
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not verified"
+        )
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         subject=str(user.id), expires_delta=access_token_expires
@@ -139,7 +162,7 @@ async def login(
     )
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(request: RefreshRequest):
+async def refresh_token(request: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(request.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
@@ -149,6 +172,14 @@ async def refresh_token(request: RefreshRequest):
 
     user_id = payload.get("sub")
     if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user or not user.is_active or not user.is_verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
