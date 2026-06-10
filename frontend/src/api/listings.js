@@ -6,3 +6,4 @@ export const getMyListings  = (params) => client.get("/listings/my/listings", { 
 export const createListing  = (data)   => client.post("/listings/", data)
 export const updateListing  = (id, data) => client.patch(`/listings/${id}`, data)
 export const cancelListing  = (id)    => client.delete(`/listings/${id}`)
+export const getCategories  = ()       => client.get("/categories/")

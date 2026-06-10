@@ -11,12 +11,16 @@ from app.schemas.bid import BidCreate, BidResponse
 from app.core.dependencies import get_current_user
 from app.core.constants import BidStatus, ListingStatus
 from app.core.exceptions import NotFoundError, BadRequestError, ForbiddenError
-from decimal import Decimal
+from decimal import Decimal, ROUND_UP
 from datetime import datetime, timezone, timedelta
 
 router = APIRouter()
 
-MIN_BID_INCREMENT = Decimal("0.05")
+# Flat minimum increment per bid — every bid must be at least $0.10
+# more than the current price. Previously this was used as a multiplier
+# (floor * 1.05) which caused floating-point drift and rejected bids
+# that appeared identical to the minimum shown in the UI.
+MIN_BID_INCREMENT = Decimal("0.10")
 SOFT_CLOSE_WINDOW = 120
 SOFT_CLOSE_EXTENSION = 120
 
@@ -41,9 +45,15 @@ async def place_bid_logic(
         raise BadRequestError("Listing owners cannot bid on their own listings")
 
     floor = Decimal(str(listing.current_price or listing.starting_price))
+
     if listing.current_price:
-        min_required = floor * (1 + MIN_BID_INCREMENT)
+        # FIX: use flat addition, not percentage multiplication.
+        # floor * (1 + 0.05) caused floating-point drift — e.g. at $1.05
+        # the minimum became $1.1025, so a bid of $1.10 was rejected even
+        # though the UI showed $1.10 as the minimum.
+        min_required = (floor + MIN_BID_INCREMENT).quantize(Decimal("0.01"), rounding=ROUND_UP)
     else:
+        # First bid just needs to meet the starting price
         min_required = floor
 
     if amount < min_required:

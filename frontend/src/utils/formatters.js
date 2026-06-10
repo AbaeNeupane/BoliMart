@@ -20,5 +20,5 @@ export const formatTimeLeft = (endsAt) => {
 
 export const formatBidIncrement = (currentPrice, minPrice) => {
   const floor = currentPrice || minPrice
-  return parseFloat((floor * 1.05).toFixed(2))
+  return parseFloat((floor + 0.10).toFixed(2))
 }
