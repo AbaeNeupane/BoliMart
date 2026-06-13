@@ -2,25 +2,54 @@ from typing import Any, Dict
 import resend
 from app.core.config import settings
 
+
 class EmailService:
     def __init__(self):
         resend.api_key = settings.RESEND_API_KEY
 
-    async def send_verification_email(self, email: str, verification_token: str) -> Dict[str, Any]:
-        """Send email verification link to user"""
-        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
-
+    async def send_otp_email(self, email: str, otp: str) -> Dict[str, Any]:
+        """Send 6-digit OTP for registration verification"""
         params = {
             "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
             "to": [email],
-            "subject": "Verify your AuctionHub account",
+            "subject": f"{otp} is your Boli verification code",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #fff;">
+                <h2 style="font-size: 22px; color: #111; margin-bottom: 8px;">Verify your email</h2>
+                <p style="color: #555; font-size: 15px; margin-bottom: 24px;">
+                    Use the code below to verify your email address. It expires in <strong>10 minutes</strong>.
+                </p>
+                <div style="background: #f5f5f5; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                    <span style="font-size: 42px; font-weight: 800; letter-spacing: 10px; color: #111;">
+                        {otp}
+                    </span>
+                </div>
+                <p style="color: #888; font-size: 13px;">
+                    If you didn't request this code, you can safely ignore this email.
+                </p>
+            </div>
+            """
+        }
+        try:
+            response = resend.Emails.send(params)
+            return {"success": True, "message_id": response.get("id")}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def send_verification_email(self, email: str, verification_token: str) -> Dict[str, Any]:
+        """Send email verification link (legacy link-based flow)"""
+        verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+        params = {
+            "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
+            "to": [email],
+            "subject": "Verify your Boli account",
             "html": f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>Welcome to AuctionHub!</h2>
+                <h2>Welcome to Boli!</h2>
                 <p>Please verify your email address to complete your registration.</p>
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="{verification_url}"
-                       style="background-color: #4F46E5; color: white; padding: 12px 24px;
+                       style="background-color: #F97316; color: white; padding: 12px 24px;
                               text-decoration: none; border-radius: 6px; display: inline-block;">
                         Verify Email Address
                     </a>
@@ -28,11 +57,9 @@ class EmailService:
                 <p>If the button doesn't work, copy and paste this link into your browser:</p>
                 <p style="word-break: break-all; color: #666;">{verification_url}</p>
                 <p>This link will expire in 24 hours.</p>
-                <p>If you didn't create an account, please ignore this email.</p>
             </div>
             """
         }
-
         try:
             response = resend.Emails.send(params)
             return {"success": True, "message_id": response.get("id")}
@@ -42,15 +69,14 @@ class EmailService:
     async def send_password_reset_email(self, email: str, reset_token: str) -> Dict[str, Any]:
         """Send password reset email"""
         reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
-
         params = {
             "from": f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>",
             "to": [email],
-            "subject": "Reset your AuctionHub password",
+            "subject": "Reset your Boli password",
             "html": f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>Password Reset Request</h2>
-                <p>You requested to reset your password for your AuctionHub account.</p>
+                <p>You requested to reset your password for your Boli account.</p>
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="{reset_url}"
                        style="background-color: #DC2626; color: white; padding: 12px 24px;
@@ -58,18 +84,16 @@ class EmailService:
                         Reset Password
                     </a>
                 </div>
-                <p>If the button doesn't work, copy and paste this link into your browser:</p>
                 <p style="word-break: break-all; color: #666;">{reset_url}</p>
                 <p>This link will expire in 1 hour.</p>
-                <p>If you didn't request this reset, please ignore this email.</p>
             </div>
             """
         }
-
         try:
             response = resend.Emails.send(params)
             return {"success": True, "message_id": response.get("id")}
         except Exception as e:
             return {"success": False, "error": str(e)}
+
 
 email_service = EmailService()
