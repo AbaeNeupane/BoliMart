@@ -16,6 +16,10 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+# Base class for all ORM models — was missing, causing
+# "Attribute name 'metadata' is reserved" error on startup
+class Base(DeclarativeBase):
+    pass
 
 
 async def get_db():

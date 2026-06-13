@@ -3,11 +3,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from uuid import UUID
 import stripe
+import json
+import logging
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.user import User
 from app.models.listing import Listing
 from app.models.transaction import Transaction
+from app.models.webhook_event import WebhookEvent
 from app.models.bid import Bid
 from app.core.dependencies import get_current_user
 from app.core.constants import UserRole, ListingStatus, TransactionStatus, BidStatus
@@ -15,6 +19,7 @@ from app.core.exceptions import NotFoundError, BadRequestError, ForbiddenError
 from app.core.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def get_stripe():
@@ -214,7 +219,7 @@ async def create_checkout(
 
 
 # ---------------------------------------------------------------------------
-# POST /payments/webhook — Stripe webhook handler
+# POST /payments/webhook — Stripe webhook handler with idempotency
 # ---------------------------------------------------------------------------
 @router.post("/webhook")
 async def stripe_webhook(
@@ -222,6 +227,7 @@ async def stripe_webhook(
     db: AsyncSession = Depends(get_db),
 ):
     if not settings.STRIPE_WEBHOOK_SECRET:
+        logger.error("Stripe webhook secret not configured")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Stripe webhook secret is not configured"
@@ -230,6 +236,7 @@ async def stripe_webhook(
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     if not sig_header:
+        logger.warning("Missing Stripe signature header")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing Stripe signature header"
@@ -240,31 +247,148 @@ async def stripe_webhook(
         event = s.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-    except stripe.error.SignatureVerificationError:
+    except stripe.error.SignatureVerificationError as e:
+        logger.warning(f"Invalid Stripe webhook signature: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid Stripe webhook signature"
         )
     except Exception as e:
+        logger.error(f"Webhook parsing error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-    if event["type"] == "payment_intent.succeeded":
-        intent = event["data"]["object"]
-        listing_id = intent["metadata"].get("listing_id")
-        if listing_id:
+    event_id = event.get("id")
+    event_type = event.get("type")
+
+    # Check for duplicate/idempotency
+    try:
+        webhook_result = await db.execute(
+            select(WebhookEvent).where(WebhookEvent.stripe_event_id == event_id)
+        )
+        existing_webhook = webhook_result.scalar_one_or_none()
+
+        if existing_webhook:
+            logger.info(f"Webhook {event_id} already processed (type={event_type})")
+            return {"status": "ok", "already_processed": True}
+
+        # Create a record for this webhook event
+        webhook_event = WebhookEvent(
+            stripe_event_id=event_id,
+            event_type=event_type,
+            metadata=json.dumps(event.get("data", {}))
+        )
+        db.add(webhook_event)
+        await db.commit()
+        await db.refresh(webhook_event)
+
+    except Exception as e:
+        logger.error(f"Error checking webhook idempotency: {e}")
+        # Don't fail the request, but log the error
+        webhook_event = None
+
+    # Process the event
+    try:
+        if event_type == "payment_intent.succeeded":
+            await handle_payment_intent_succeeded(event, db, webhook_event)
+        elif event_type == "charge.refunded":
+            await handle_charge_refunded(event, db, webhook_event)
+        # Add more event handlers as needed
+
+        # Mark webhook as successfully processed
+        if webhook_event:
+            webhook_event.processed = True
+            webhook_event.success = True
+            webhook_event.processed_at = datetime.now(timezone.utc)
+            await db.commit()
+
+    except Exception as e:
+        logger.error(f"Error processing webhook {event_id}: {e}")
+        # Mark webhook as failed
+        if webhook_event:
+            webhook_event.processed = True
+            webhook_event.success = False
+            webhook_event.error_message = str(e)[:500]
+            webhook_event.processed_at = datetime.now(timezone.utc)
+            await db.commit()
+        # Return 200 OK to acknowledge receipt and avoid Stripe retries of a broken handler
+        return {"status": "error", "message": str(e)}
+
+    return {"status": "ok"}
+
+
+async def handle_payment_intent_succeeded(event: dict, db: AsyncSession, webhook_event: WebhookEvent = None) -> None:
+    """Handle payment_intent.succeeded event with error handling and retry logic."""
+    intent = event["data"]["object"]
+    intent_id = intent.get("id")
+    listing_id = intent.get("metadata", {}).get("listing_id")
+
+    if not listing_id:
+        logger.warning(f"Payment intent {intent_id} has no listing_id in metadata")
+        return
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
             result = await db.execute(
                 select(Transaction).where(
-                    Transaction.stripe_payment_intent_id == intent["id"]
+                    Transaction.stripe_payment_intent_id == intent_id
                 )
             )
             txn = result.scalar_one_or_none()
-            if txn:
-                txn.status = TransactionStatus.CAPTURED
-                from datetime import datetime, timezone
-                txn.paid_at = datetime.now(timezone.utc)
-                await db.commit()
 
-    return {"status": "ok"}
+            if not txn:
+                logger.warning(f"No transaction found for payment intent {intent_id}")
+                return
+
+            # Skip if already captured
+            if txn.status == TransactionStatus.CAPTURED:
+                logger.info(f"Transaction {txn.id} already captured, skipping")
+                return
+
+            # Update transaction status
+            txn.status = TransactionStatus.CAPTURED
+            txn.paid_at = datetime.now(timezone.utc)
+            await db.commit()
+
+            logger.info(f"Successfully marked transaction {txn.id} as captured")
+            return
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Attempt {attempt + 1} to handle payment intent failed: {e}, retrying...")
+                continue
+            else:
+                logger.error(f"Failed to handle payment intent {intent_id} after {max_retries} attempts: {e}")
+                raise
+
+
+async def handle_charge_refunded(event: dict, db: AsyncSession, webhook_event: WebhookEvent = None) -> None:
+    """Handle charge.refunded event to update transaction status."""
+    charge = event["data"]["object"]
+    charge_id = charge.get("id")
+
+    try:
+        # Find transaction by payment intent id (charges don't have direct transaction association)
+        payment_intent_id = charge.get("payment_intent")
+        if not payment_intent_id:
+            logger.warning(f"Refund charge {charge_id} has no payment_intent")
+            return
+
+        result = await db.execute(
+            select(Transaction).where(
+                Transaction.stripe_payment_intent_id == payment_intent_id
+            )
+        )
+        txn = result.scalar_one_or_none()
+
+        if txn:
+            txn.status = TransactionStatus.REFUNDED
+            await db.commit()
+            logger.info(f"Marked transaction {txn.id} as refunded")
+
+    except Exception as e:
+        logger.error(f"Error handling refund for charge {charge_id}: {e}")
+        raise
 
 
 # ---------------------------------------------------------------------------

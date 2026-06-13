@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.database.session import get_db
 from app.models.user import User
 from app.models.transaction import Transaction
-from app.api.endpoints.auth import get_current_user, UserResponse
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 

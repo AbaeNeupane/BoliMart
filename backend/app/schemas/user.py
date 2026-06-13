@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 
 class UserCreate(BaseModel):
@@ -6,6 +6,39 @@ class UserCreate(BaseModel):
     username: str
     password: str
     full_name: str
+
+    @field_validator("username")
+    @classmethod
+    def normalize_username(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 3:
+            raise ValueError("Username must be at least 3 characters")
+        if len(normalized) > 50:
+            raise ValueError("Username must not exceed 50 characters")
+        if " " in normalized:
+            raise ValueError("Username cannot contain spaces")
+        return normalized
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if len(value) > 200:
+            raise ValueError("Password must not exceed 200 characters")
+        return value
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        v = value.strip()
+        if len(v) < 2:
+            raise ValueError("Full name must be at least 2 characters")
+        if len(v) > 200:
+            raise ValueError("Full name must not exceed 200 characters")
+        return v
 
 class UserResponse(BaseModel):
     id: str
@@ -21,3 +54,15 @@ class UserResponse(BaseModel):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name_update(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        v = value.strip()
+        if len(v) < 2:
+            raise ValueError("Full name must be at least 2 characters")
+        if len(v) > 200:
+            raise ValueError("Full name must not exceed 200 characters")
+        return v

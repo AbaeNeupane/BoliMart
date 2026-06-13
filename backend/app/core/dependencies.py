@@ -31,7 +31,7 @@ async def get_current_user(
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
-    if not user or not user.is_active:
+    if not user or not user.is_active or not user.is_verified:
         raise credentials_exc
     return user
 
@@ -63,6 +63,9 @@ async def get_optional_user(
         if not user_id:
             return None
         result = await db.execute(select(User).where(User.id == user_id))
-        return result.scalar_one_or_none()
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active or not user.is_verified:
+            return None
+        return user
     except Exception:
         return None
