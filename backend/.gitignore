@@ -21,6 +21,7 @@ build
 *.tar.gz
 *.zip
 
+
 # Celery Beat schedule files
 celerybeat-schedule.dat
 celerybeat-schedule.dir
