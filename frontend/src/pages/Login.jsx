@@ -44,12 +44,14 @@ export default function Login() {
           <Input
             label="Email"
             type="email"
+            placeholder="you@example.com"
             error={errors.email?.message}
             {...register("email")}
           />
           <Input
             label="Password"
             type="password"
+            placeholder="password"
             error={errors.password?.message}
             {...register("password")}
           />

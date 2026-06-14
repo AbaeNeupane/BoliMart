@@ -13,14 +13,42 @@ import Button from "../../components/ui/Button"
 import Input from "../../components/ui/Input"
 
 const schema = z.object({
-  title: z.string().min(5, "Title too short"),
-  description: z.string().min(20, "Description too short"),
-  starting_price: z.number({ invalid_type_error: "Enter a number" }).positive("Must be positive"),
-  duration_days: z.number().min(1).max(30),
+  title: z
+    .string()
+    .min(5, "Title must be at least 5 characters")
+    .max(200, "Title must not exceed 200 characters"),
+  description: z
+    .string()
+    .min(20, "Description must be at least 20 characters")
+    .max(5000, "Description must not exceed 5000 characters"),
+  starting_price: z
+    .number({ invalid_type_error: "Enter a number" })
+    .positive("Starting price must be greater than zero")
+    .max(999999.99, "Starting price exceeds maximum allowed"),
+  reserve_price: z
+    .number()
+    .optional()
+    .refine((v) => !v || v > 0, "Reserve price must be greater than zero")
+    .refine((v) => !v || v <= 999999.99, "Reserve price exceeds maximum allowed"),
+  buy_now_price: z
+    .number()
+    .optional()
+    .refine((v) => !v || v > 0, "Buy-now price must be greater than zero")
+    .refine((v) => !v || v <= 999999.99, "Buy-now price exceeds maximum allowed"),
+  condition: z
+    .string()
+    .optional()
+    .refine((v) => !v || ["new", "used", "refurbished"].includes(v), "Invalid condition"),
+  location: z
+    .string()
+    .optional()
+    .refine((v) => !v || v.length <= 500, "Location must not exceed 500 characters"),
+  duration_days: z.number().min(1, "Minimum 1 day").max(30, "Maximum 30 days"),
   category_id: z.string().min(1, "Select a category"),
 })
 
 const DURATION_OPTIONS = [1, 3, 5, 7, 14, 30]
+const CONDITIONS = ["new", "used", "refurbished"]
 
 export default function CreateListing() {
   const navigate = useNavigate()

@@ -14,16 +14,14 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-// Log out and redirect on any 401.
-// The isStubEndpoint exception has been removed — all endpoints are real
-// now. The ghost login bug was caused by swallowing 401s on dashboard
-// endpoints, which let expired tokens persist indefinitely.
+// Handle 401 with refresh attempt, then enhanced error handling
 client.interceptors.response.use(
   (res) => res,
   async (error) => {
     const status = error.response?.status
     const originalRequest = error.config
 
+    // Attempt refresh on 401
     if (status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true
       const refreshToken = useAuthStore.getState().refreshToken
@@ -41,13 +39,24 @@ client.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${access_token}`
           return client(originalRequest)
         } catch (_err) {
-          // Failed refresh; fall through to logout below.
+          // Failed refresh; fall through to logout below
         }
       }
 
+      // Logout and redirect to login on failed refresh
       useAuthStore.getState().logout()
       window.location.href = "/login"
+      return Promise.reject(error)
     }
+
+    // Add retryable flag for 429 (rate limit) and 5xx errors
+    if (status === 429 || (status >= 500 && status < 600)) {
+      error.retryable = true
+    }
+
+    // Attach structured error info
+    error.userMessage = error.response?.data?.detail || error.message || "Unknown error"
+    error.statusCode = status
 
     return Promise.reject(error)
   }
