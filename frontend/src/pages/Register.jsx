@@ -267,20 +267,40 @@ function Step2({ email, password, onNext }) {
   )
 }
 
-// ── Step 3 — Profile ──────────────────────────────────────────────────────────
+//  Step 3 — Profile details
 
 const NATIONALITIES = [
-  "Afghan", "Albanian", "American", "Australian", "Austrian", "Bangladeshi",
-  "Belgian", "Brazilian", "British", "Bulgarian", "Canadian", "Chilean",
-  "Chinese", "Colombian", "Croatian", "Czech", "Danish", "Dutch", "Egyptian",
-  "Ethiopian", "Finnish", "French", "German", "Ghanaian", "Greek", "Hungarian",
+  "Afghan", "Albanian", "Algerian", "Andorran", "Angolan", "Antiguan", "Argentine",
+  "Armenian", "Australian", "Austrian", "Azerbaijani", "Bahamian", "Bahraini",
+  "Bangladeshi", "Barbadian", "Belarusian", "Belgian", "Belizean", "Beninese",
+  "Bhutanese", "Bolivian", "Bosnian", "Botswanan", "Brazilian", "British", "Bruneian",
+  "Bulgarian", "Burkinabe", "Burundian", "Cambodian", "Cameroonian", "Canadian",
+  "Cape Verdean", "Central African", "Chadian", "Chilean", "Chinese", "Colombian",
+  "Comorian", "Congolese", "Costa Rican", "Croatian", "Cuban", "Cypriot", "Czech",
+  "Danish", "Djiboutian", "Dominican", "Dutch", "East Timorese", "Ecuadorian",
+  "Egyptian", "Emirati", "Equatorial Guinean", "Eritrean", "Estonian", "Eswatini",
+  "Ethiopian", "Fijian", "Filipino", "Finnish", "French", "Gabonese", "Gambian",
+  "Georgian", "German", "Ghanaian", "Greek", "Grenadian", "Guatemalan", "Guinean",
+  "Guinea-Bissauan", "Guyanese", "Haitian", "Honduran", "Hungarian", "Icelandic",
   "Indian", "Indonesian", "Iranian", "Iraqi", "Irish", "Israeli", "Italian",
-  "Japanese", "Jordanian", "Kenyan", "Korean", "Kuwaiti", "Lebanese", "Malaysian",
-  "Mexican", "Moroccan", "Nepali", "Nigerian", "Norwegian", "Pakistani",
-  "Peruvian", "Filipino", "Polish", "Portuguese", "Romanian", "Russian",
-  "Saudi Arabian", "Serbian", "Singaporean", "South African", "Spanish",
-  "Sri Lankan", "Swedish", "Swiss", "Syrian", "Taiwanese", "Thai", "Turkish",
-  "Ukrainian", "Emirati", "Venezuelan", "Vietnamese", "Zimbabwean",
+  "Ivorian", "Jamaican", "Japanese", "Jordanian", "Kazakhstani", "Kenyan",
+  "Kiribatian", "Korean", "Kosovan", "Kuwaiti", "Kyrgyzstani", "Laotian",
+  "Latvian", "Lebanese", "Lesothan", "Liberian", "Libyan", "Liechtensteiner",
+  "Lithuanian", "Luxembourgish", "Macedonian","Madagascan", "Malawian", "Malaysian", "Maldivian",
+  "Malian", "Maltese", "Marshallese", "Mauritanian", "Mauritian", "Mexican",
+  "Micronesian", "Moldovan", "Monégasque", "Mongolian", "Montenegrin", "Moroccan",
+  "Mozambican", "Namibian", "Nauruan", "Nepali", "New Zealander", "Nicaraguan",
+  "Nigerian", "Nigerien", "Norwegian", "Omani", "Pakistani", "Palauan",
+  "Palestinian", "Panamanian", "Papua New Guinean", "Paraguayan", "Peruvian",
+  "Polish", "Portuguese", "Qatari", "Romanian", "Russian", "Rwandan", "Salvadoran",
+  "Samoan", "San Marinese", "São Toméan", "Saudi Arabian", "Senegalese", "Serbian",
+  "Seychellois", "Sierra Leonean", "Singaporean", "Slovak", "Slovenian",
+  "Solomon Islander", "Somali", "South African", "South Sudanese", "Spanish",
+  "Sri Lankan", "Sudanese", "Surinamese", "Swedish", "Swiss", "Syrian",
+  "Taiwanese", "Tajikistani", "Tanzanian", "Thai", "Togolese", "Tongan",
+  "Trinidadian", "Tunisian", "Turkish", "Turkmen", "Tuvaluan", "Ugandan",
+  "Ukrainian", "American", "Uruguayan", "Uzbekistani", "Vanuatuan", "Vatican", "Venezuelan", 
+  "Vietnamese", "Yemeni", "Zambian", "Zimbabwean",
 ]
 
 function Step3({ email, sessionToken, onDone }) {
@@ -380,7 +400,7 @@ function Step3({ email, sessionToken, onDone }) {
   )
 }
 
-// ── Main Register page ────────────────────────────────────────────────────────
+//  Main Register page 
 
 export default function Register() {
   const navigate = useNavigate()
