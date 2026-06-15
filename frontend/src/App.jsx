@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary"
 import ProtectedRoute from "./components/auth/ProtectedRoute"
 import RoleGuard from "./components/auth/RoleGuard"
 import Navbar from "./components/layout/Navbar"
+import DashboardLayout from "./components/layout/DashboardLayout"
 import { ROLES } from "./utils/constants"
 import { useAuthStore } from "./store/authStore"
 import { getMe, refreshToken } from "./api/auth"
@@ -106,24 +107,28 @@ export default function App() {
               {/* User (Buyer + Seller) */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<RoleGuard roles={[ROLES.USER, ROLES.ADMIN]} />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/my-listings" element={<MyListings />} />
-                  <Route path="/listings/create" element={<CreateListing />} />
-                  <Route path="/listings/:id/edit" element={<EditListing />} />
-                  <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
-                  <Route path="/my-bids" element={<MyBids />} />
-                  <Route path="/checkout/:listingId" element={<Checkout />} />
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/my-listings" element={<MyListings />} />
+                    <Route path="/listings/create" element={<CreateListing />} />
+                    <Route path="/listings/:id/edit" element={<EditListing />} />
+                    <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
+                    <Route path="/my-bids" element={<MyBids />} />
+                    <Route path="/checkout/:listingId" element={<Checkout />} />
+                  </Route>
                 </Route>
               </Route>
 
               {/* Admin */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<RoleGuard roles={[ROLES.ADMIN]} />}>
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/listings" element={<AdminListings />} />
-                  <Route path="/admin/transactions" element={<AdminTransactions />} />
-                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route element={<DashboardLayout />}>
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/listings" element={<AdminListings />} />
+                    <Route path="/admin/transactions" element={<AdminTransactions />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
+                  </Route>
                 </Route>
               </Route>
 

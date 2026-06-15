@@ -4,6 +4,7 @@ import { getListings } from "../api/listings"
 import ListingGrid from "../components/listings/ListingGrid"
 import Spinner from "../components/ui/Spinner"
 import { useDebounce } from "../hooks/useDebounce"
+import Footer from "../components/layout/Footer"
 
 const SORT_OPTIONS = [
   { label: "Ending soon",   value: "ending_soon" },
@@ -115,6 +116,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   )
 }
