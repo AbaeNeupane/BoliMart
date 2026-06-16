@@ -187,7 +187,7 @@ export default function Navbar() {
 
             {/* Hamburger — visible below sm only (public pages) */}
             <button
-              onClick={() => setMobileOpen((o) => !o)}
+              onClick={() => user ? toggleSidebar() : setMobileOpen((o) => !o)}
               className="sm:hidden flex p-2 text-white hover:bg-gray-700 rounded transition-colors"
               aria-label="Toggle menu"
             >
