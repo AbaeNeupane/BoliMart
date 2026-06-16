@@ -39,20 +39,41 @@ const ADMIN_SECTIONS = [
   },
 ]
 
-export default function Sidebar({ onClose }) {
-  const { user } = useAuthStore()
+export default function Sidebar() {
+  const { user, sidebarOpen, setSidebar } = useAuthStore()
   const location = useLocation()
-
   const sections = user?.role === ROLES.ADMIN ? ADMIN_SECTIONS : USER_SECTIONS
+  const onClose = () => setSidebar(false)
 
   return (
     <>
-      {/* Desktop sidebar — starts below navbar + category bar (103px) */}
+      {/* Overlay — mobile only, when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Mobile sidebar — slide in/out below md (768px) */}
       <aside
-        className="hidden sm:block fixed left-0 z-40 w-64 bg-white border-r border-gray-200 overflow-y-auto"
-        style={{ top: "103px", height: "calc(100vh - 103px)" }}
+        className={`
+          fixed left-0 z-40 w-64 bg-white border-r border-gray-200
+          transform transition-transform duration-300 ease-in-out
+          overflow-y-auto md:hidden
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+        style={{ top: "56px", height: "calc(100vh - 56px)" }}
       >
         <SidebarContent user={user} sections={sections} location={location} onClose={onClose} />
+      </aside>
+
+      {/* Desktop sidebar — always visible from md (768px) */}
+      <aside
+        className="hidden md:block fixed left-0 z-40 w-64 bg-white border-r border-gray-200 overflow-y-auto"
+        style={{ top: "103px", height: "calc(100vh - 103px)" }}
+      >
+        <SidebarContent user={user} sections={sections} location={location} onClose={() => {}} />
       </aside>
     </>
   )
@@ -61,7 +82,6 @@ export default function Sidebar({ onClose }) {
 function SidebarContent({ user, sections, location, onClose }) {
   return (
     <>
-      {/* User info strip */}
       {user && (
         <div className="px-4 py-4 border-b border-gray-100 bg-gray-50">
           <div className="flex items-center gap-3">
@@ -78,42 +98,37 @@ function SidebarContent({ user, sections, location, onClose }) {
         </div>
       )}
 
-      {/* Nav sections */}
       <nav className="px-3 py-4 space-y-5">
-        {sections.map(function(section) {
-          return (
-            <div key={section.label}>
-              <p className="px-3 mb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                {section.label}
-              </p>
-              <ul className="space-y-0.5">
-                {section.items.map(function(item) {
-                  const isActive = location.pathname === item.href
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        onClick={onClose}
-                        className={`
-                          flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                          ${isActive
-                            ? "bg-primary-50 text-primary-600"
-                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                          }
-                        `}
-                      >
-                        {isActive && (
-                          <span className="w-1 h-4 bg-primary-500 rounded-full mr-2.5 flex-shrink-0" />
-                        )}
-                        {item.label}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )
-        })}
+        {sections.map((section) => (
+          <div key={section.label}>
+            <p className="px-3 mb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              {section.label}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.href
+                return (
+                  <li key={item.href}>
+                    <Link
+                      to={item.href}
+                      onClick={onClose}
+                      className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                        ${isActive
+                          ? "bg-primary-50 text-primary-600"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                        }`}
+                    >
+                      {isActive && (
+                        <span className="w-1 h-4 bg-primary-500 rounded-full mr-2.5 flex-shrink-0" />
+                      )}
+                      {item.label}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
     </>
   )

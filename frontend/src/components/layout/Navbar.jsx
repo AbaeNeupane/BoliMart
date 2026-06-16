@@ -7,7 +7,7 @@ import { getCategories } from "../../api/listings"
 import logo from "../../assets/logo1.png"
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, toggleSidebar } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const params = new URLSearchParams(location.search)
@@ -69,17 +69,27 @@ export default function Navbar() {
     }
   }
 
+  // Determine if we're on a dashboard/admin page where the sidebar is shown
+  const isDashboardPage =
+    location.pathname.startsWith("/dashboard") ||
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/my-") ||
+    location.pathname.startsWith("/listings/create") ||
+    location.pathname.startsWith("/checkout")
+
   return (
-    <header className="sticky top-0 z-50 bg-gray-900">
+    <header className="sticky top-0 z-50 bg-gray-900 w-full">
       {/* Top bar */}
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-6">
+      <div className="w-full px-3 sm:px-6">
         <div className="h-14 flex items-center gap-3">
 
           {/* Logo */}
-          <a href="/" className="inline-block"> <img src={logo} alt="Boli" className="h-9 w-auto brightness-100" /></a>
+          <a href="/" className="inline-block flex-shrink-0">
+            <img src={logo} alt="Boli" className="h-9 w-auto brightness-100" />
+          </a>
 
           {/* Search bar — hidden below sm */}
-          <form onSubmit={handleSearch} className="hidden sm:flex flex-1 max-w-2xl">
+          <form onSubmit={handleSearch} className="hidden sm:flex flex-1 max-w-100">
             <input
               type="text"
               value={searchQuery}
@@ -112,7 +122,7 @@ export default function Navbar() {
               </>
             )}
 
-            {/* Profile icon — always visible on mobile, hidden on desktop when not signed in */}
+            {/* Profile icon — always visible, shows dropdown */}
             <div className={`relative ${!user ? "sm:hidden" : ""}`} ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((o) => !o)}
@@ -126,18 +136,10 @@ export default function Navbar() {
               {dropdownOpen && (
                 !user ? (
                   <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50">
-                    <Link
-                      to="/login"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
+                    <Link to="/login" onClick={() => setDropdownOpen(false)} className="flex px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                       Sign in
                     </Link>
-                    <Link
-                      to="/register"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex px-4 py-2.5 text-sm font-semibold text-primary-600 hover:bg-gray-50 transition-colors"
-                    >
+                    <Link to="/register" onClick={() => setDropdownOpen(false)} className="flex px-4 py-2.5 text-sm font-semibold text-primary-600 hover:bg-gray-50 transition-colors">
                       Get started
                     </Link>
                   </div>
@@ -183,7 +185,7 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Hamburger — visible below sm only */}
+            {/* Hamburger — visible below sm only (public pages) */}
             <button
               onClick={() => setMobileOpen((o) => !o)}
               className="sm:hidden flex p-2 text-white hover:bg-gray-700 rounded transition-colors"
@@ -202,10 +204,9 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-
       {/* Category bar — desktop only */}
-      <div className="bg-gray-700 hidden sm:block">
-        <div className="max-w-[1400px] mx-auto px-6">
+      <div className="bg-gray-700 hidden sm:block w-full">
+        <div className="w-full px-6">
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
             <Link
               to="/"
@@ -268,6 +269,54 @@ export default function Navbar() {
               ))}
             </select>
           </div>
+
+          {/* Sidebar nav links — only on dashboard pages when logged in */}
+          {user && isDashboardPage && (
+            <div className="px-3 py-3 border-t border-gray-100 space-y-4">
+              <div>
+                <p className="px-3 mb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-widest">Main</p>
+                <ul className="space-y-0.5">
+                  {[
+                    { label: "Home", href: "/" },
+                    { label: "Dashboard", href: user?.role === ROLES.ADMIN ? "/admin" : "/dashboard" },
+                  ].map(({ label, href }) => (
+                    <li key={href}>
+                      <Link to={href} onClick={() => setMobileOpen(false)}
+                        className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${location.pathname === href ? "bg-primary-50 text-primary-600" : "text-gray-600 hover:bg-gray-100"}`}>
+                        {location.pathname === href && <span className="w-1 h-4 bg-primary-500 rounded-full mr-2.5 flex-shrink-0" />}
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="px-3 mb-1.5 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                  {user?.role === ROLES.ADMIN ? "Manage" : "Listings"}
+                </p>
+                <ul className="space-y-0.5">
+                  {(user?.role === ROLES.ADMIN ? [
+                    { label: "Users", href: "/admin/users" },
+                    { label: "Listings", href: "/admin/listings" },
+                    { label: "Transactions", href: "/admin/transactions" },
+                    { label: "Settings", href: "/admin/settings" },
+                  ] : [
+                    { label: "My Listings", href: "/my-listings" },
+                    { label: "Create Listing", href: "/listings/create" },
+                    { label: "My Bids", href: "/my-bids" },
+                  ]).map(({ label, href }) => (
+                    <li key={href}>
+                      <Link to={href} onClick={() => setMobileOpen(false)}
+                        className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${location.pathname === href ? "bg-primary-50 text-primary-600" : "text-gray-600 hover:bg-gray-100"}`}>
+                        {location.pathname === href && <span className="w-1 h-4 bg-primary-500 rounded-full mr-2.5 flex-shrink-0" />}
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </header>

@@ -41,10 +41,6 @@ function AuthInitializer({ children }) {
   const accessToken = useAuthStore((s) => s.accessToken)
   const setUser = useAuthStore((s) => s.setUser)
   const logout = useAuthStore((s) => s.logout)
-
-  // Initialize checking to true only if there's a token to validate.
-  // Using a ref to track the initial value so the effect doesn't re-run
-  // when accessToken changes mid-session (e.g. after token refresh).
   const [checking, setChecking] = useState(!!accessToken)
 
   const validate = useCallback(async () => {
