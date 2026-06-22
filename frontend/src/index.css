@@ -108,3 +108,12 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+aside {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+aside::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}

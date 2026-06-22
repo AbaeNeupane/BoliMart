@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary"
 import ProtectedRoute from "./components/auth/ProtectedRoute"
 import RoleGuard from "./components/auth/RoleGuard"
 import Navbar from "./components/layout/Navbar"
+import Sidebar from "./components/layout/Sidebar"
 import DashboardLayout from "./components/layout/DashboardLayout"
 import { ROLES } from "./utils/constants"
 import { useAuthStore } from "./store/authStore"
@@ -92,6 +93,7 @@ export default function App() {
           <AuthInitializer>
             <Toaster position="top-right" />
             <Navbar />
+            <Sidebar />
             <Routes>
               {/* Public */}
               <Route path="/" element={<Home />} />
