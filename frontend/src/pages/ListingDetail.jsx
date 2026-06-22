@@ -30,9 +30,10 @@ export default function ListingDetail() {
   const listing = data?.data
 
   // Live bid updates via WebSocket
-  useAuctionSocket(id, (bidData) => {
-    setLivePrice(bidData.bid_amount)
+  const { isConnected, viewers } = useAuctionSocket(id, (bidData) => {
+    if (bidData.bid_amount) setLivePrice(bidData.bid_amount)
     queryClient.invalidateQueries(["bids", id])
+    queryClient.invalidateQueries(["listing", id])
     if (bidData.bidder_id !== user?.id) {
       toast("New bid placed!", { icon: "🔔" })
     }
@@ -95,7 +96,16 @@ export default function ListingDetail() {
               <div className="flex justify-between items-start mb-5">
                 {/* Price */}
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">Current bid</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">Current bid</p>
+                    {isConnected && (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-500 font-medium">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                        Live
+                        {viewers > 1 && <span className="text-gray-400">· {viewers} watching</span>}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-3xl font-bold text-gray-900">{formatCurrency(currentPrice)}</p>
                   <p className="text-xs text-gray-400 mt-1">
                     Starting price: {formatCurrency(listing.starting_price)}

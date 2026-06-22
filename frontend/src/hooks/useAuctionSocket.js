@@ -1,43 +1,87 @@
-import { useEffect, useRef } from "react"
-import { useSocketStore } from "../store/socketStore"
+import { useEffect, useRef, useState } from "react"
 import { WS_URL } from "../utils/constants"
 
-export const useAuctionSocket = (listingId, onBidReceived) => {
-  const onBidReceivedRef = useRef(onBidReceived)
+const RECONNECT_DELAY = 3000  // ms before attempting reconnect
+const MAX_RECONNECTS = 5
 
-  // Keep callback ref current without re-triggering the effect
+export const useAuctionSocket = (listingId, onBidReceived) => {
+  const onBidRef = useRef(onBidReceived)
+  const reconnectCount = useRef(0)
+  const reconnectTimer = useRef(null)
+  const socketRef = useRef(null)
+  const unmounted = useRef(false)
+  const [isConnected, setIsConnected] = useState(false)
+  const [viewers, setViewers] = useState(null)
+
   useEffect(() => {
-    onBidReceivedRef.current = onBidReceived
-  }, [onBidReceived])
+    onBidRef.current = onBidReceived
+  })
 
   useEffect(() => {
     if (!listingId) return
+    unmounted.current = false
 
-    const socket = new WebSocket(`${WS_URL}/ws/auction/${listingId}`)
+    function connect() {
+      if (unmounted.current) return
 
-    socket.onopen = () => {
-      useSocketStore.getState().setConnected(true)
-    }
+      const ws = new WebSocket(`${WS_URL}/ws/auction/${listingId}`)
+      socketRef.current = ws
 
-    socket.onmessage = (event) => {
-      try {
-        const bidData = JSON.parse(event.data)
-        onBidReceivedRef.current?.(bidData)
-      } catch (err) {
-        console.error("[WS] Failed to parse message:", err)
+      ws.onopen = () => {
+        if (unmounted.current) { ws.close(); return }
+        setIsConnected(true)
+        reconnectCount.current = 0
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+
+          if (msg.type === "connected") {
+            setViewers(msg.data?.viewers ?? null)
+            return
+          }
+
+          if (msg.type === "new_bid" && msg.data) {
+            onBidRef.current?.(msg.data)
+            return
+          }
+
+          // Legacy format — plain bid object without type wrapper
+          if (msg.bid_amount !== undefined) {
+            onBidRef.current?.(msg)
+          }
+        } catch (err) {
+          console.error("[WS] Failed to parse message:", err)
+        }
+      }
+
+      ws.onerror = () => {
+        // onclose will fire after onerror, handle reconnect there
+      }
+
+      ws.onclose = () => {
+        if (unmounted.current) return
+        setIsConnected(false)
+
+        if (reconnectCount.current < MAX_RECONNECTS) {
+          reconnectCount.current += 1
+          reconnectTimer.current = setTimeout(connect, RECONNECT_DELAY)
+        }
       }
     }
 
-    socket.onclose = () => {
-      useSocketStore.getState().setConnected(false)
-    }
-
-    useSocketStore.getState().setSocket(socket)
+    connect()
 
     return () => {
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        socket.close()
+      unmounted.current = true
+      clearTimeout(reconnectTimer.current)
+      const ws = socketRef.current
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        ws.close()
       }
     }
   }, [listingId])
+
+  return { isConnected, viewers }
 }

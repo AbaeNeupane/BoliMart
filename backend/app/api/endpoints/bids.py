@@ -91,6 +91,20 @@ async def place_bid_logic(
     await db.commit()
     await db.refresh(new_bid)
 
+    # Broadcast new bid to all WebSocket clients watching this listing
+    try:
+        from app.api.endpoints.websocket import broadcast_bid
+        await broadcast_bid(str(listing_id), {
+            "listing_id": str(listing_id),
+            "bid_id": str(new_bid.id),
+            "bid_amount": float(new_bid.amount),
+            "bid_count": listing.bid_count,
+            "bidder_id": str(new_bid.bidder_id),
+            "auction_end_time": listing.auction_end_time.isoformat(),
+        })
+    except Exception:
+        pass  # Never fail a bid because of WebSocket broadcast
+
     # Fire outbid email in background (non-blocking)
     if outbid_user_id:
         try:
