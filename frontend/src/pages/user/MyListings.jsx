@@ -4,7 +4,7 @@ import client from "../../api/client"
 import { cancelListing } from "../../api/listings"
 import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
-import CountdownTimer from "../../components/listings/CountdownTimer"
+import { CompactCountdown } from "../../components/listings/CountdownTimer"
 import Skeleton from "../../components/ui/Skeleton"
 import { formatCurrency } from "../../utils/formatters"
 import toast from "react-hot-toast"
@@ -144,7 +144,7 @@ export default function MyListings() {
                       {formatCurrency(listing.current_price || listing.starting_price)}
                     </td>
                     <td className="px-5 py-4">
-                      <CountdownTimer endsAt={listing.auction_end_time} />
+                      <CompactCountdown endsAt={listing.auction_end_time} />
                     </td>
                     <td className="px-5 py-4 text-gray-600">{listing.bid_count || 0}</td>
                     <td className="px-5 py-4">
