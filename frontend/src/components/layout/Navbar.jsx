@@ -198,15 +198,15 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* Logged in — account info */}
-              {user && (
+              {/* only show when Logged in — account info */}
+              {/* {user && (
                 <div className="hidden sm:flex items-center">
                   <div className="flex flex-col items-start px-2 py-1 text-white">
-                    <span className="text-xs text-gray-300 leading-tight">Hello, {user.full_name?.split(" ")[0] || user.username}</span>
-                    <span className="text-sm font-bold leading-tight capitalize">{user.role}</span>
+                    <span className="text-sm text-gray-300 font-bold leading-tight capitalize"> {user.full_name?.split(" ")[0] || user.username}</span>
+                    <span className="text-xs leading-tight ">{user.role}</span>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Sidebar toggle — logged in all sizes */}
               {user && (
@@ -215,7 +215,6 @@ export default function Navbar() {
                   className="flex flex-col items-start px-2 py-1 rounded border-2 border-transparent hover:border-gray-500 transition-colors text-primary-500"
                   aria-label="Toggle sidebar"
                 >
-                  <span className="text-xs text-gray-300 leading-tight">Browse</span>
                   <span className="text-sm font-bold leading-tight flex items-center gap-1">
                     Menu
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
