@@ -94,6 +94,7 @@ async def place_bid_logic(
     # Broadcast new bid to all WebSocket clients watching this listing
     try:
         from app.api.endpoints.websocket import broadcast_bid
+        from app.services.notification_service import notify_outbid, notify_new_bid_seller
         await broadcast_bid(str(listing_id), {
             "listing_id": str(listing_id),
             "bid_id": str(new_bid.id),
@@ -104,6 +105,18 @@ async def place_bid_logic(
         })
     except Exception:
         pass  # Never fail a bid because of WebSocket broadcast
+
+    # Create in-app notifications
+    try:
+        from app.services.notification_service import notify_outbid, notify_new_bid_seller
+        # Notify previous highest bidder they were outbid
+        if outbid_user_id and outbid_user_id != bidder_id:
+            await notify_outbid(db, outbid_user_id, listing_id, listing.title, float(amount))
+        # Notify seller of new bid
+        if str(listing.seller_id) != bidder_id:
+            await notify_new_bid_seller(db, listing.seller_id, listing_id, listing.title, float(amount))
+    except Exception:
+        pass  # Never fail a bid because of notification
 
     # Fire outbid email in background (non-blocking)
     if outbid_user_id:

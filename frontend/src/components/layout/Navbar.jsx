@@ -3,6 +3,7 @@ import { useAuthStore } from "../../store/authStore"
 import { useState, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getCategories } from "../../api/listings"
+import NotificationBell from "../notifications/NotificationBell"
 import logo from "../../assets/logo1.png"
 
 export default function Navbar() {
@@ -207,6 +208,10 @@ export default function Navbar() {
                   </div>
                 </div>
               )} */}
+
+              {/* Notification bell — logged in only */}
+              {user && <NotificationBell />}
+              {/* Sidebar toggle — logged in all sizes */}
 
               {/* Sidebar toggle — logged in all sizes */}
               {user && (
