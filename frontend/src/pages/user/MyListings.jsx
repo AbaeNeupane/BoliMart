@@ -5,6 +5,7 @@ import { cancelListing } from "../../api/listings"
 import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
 import { CompactCountdown } from "../../components/listings/CountdownTimer"
+import EmptyState from "../../components/ui/EmptyState"
 import Skeleton from "../../components/ui/Skeleton"
 import { formatCurrency } from "../../utils/formatters"
 import toast from "react-hot-toast"
@@ -115,12 +116,12 @@ export default function MyListings() {
               ))}
             </div>
           ) : listings.length === 0 ? (
-            <div className="p-10 text-center text-gray-400">
-              No listings yet.{" "}
-              <Link to="/listings/create" className="text-primary-500">
-                Create one
-              </Link>
-            </div>
+            <EmptyState
+              icon="📦"
+              title="No listings yet"
+              description="You haven't created any listings. Start selling by creating your first auction."
+              action={{ label: "+ Create listing", href: "/listings/create" }}
+            />
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">

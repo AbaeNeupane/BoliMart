@@ -6,6 +6,7 @@ import Badge from "../../components/ui/Badge"
 import Button from "../../components/ui/Button"
 import { formatCurrency, formatDate } from "../../utils/formatters"
 import toast from "react-hot-toast"
+import EmptyState from "../../components/ui/EmptyState"
 
 export default function MyBids() {
   const queryClient = useQueryClient()
@@ -76,7 +77,12 @@ export default function MyBids() {
             <h2 className="font-semibold text-gray-800">All bids ({bids.length})</h2>
           </div>
           {bids.length === 0 ? (
-            <div className="p-10 text-center text-gray-400">You haven't placed any bids yet</div>
+            <EmptyState
+              icon="🏷️"
+              title="No bids yet"
+              description="You haven't placed any bids yet. Browse active auctions and place your first bid."
+              action={{ label: "Browse auctions", href: "/" }}
+            />
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
