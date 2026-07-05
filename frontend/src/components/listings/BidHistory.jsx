@@ -24,7 +24,7 @@ export default function BidHistory({ listingId }) {
           {bids.map((bid, i) => (
             <div key={bid.id} className={`flex justify-between items-center py-2 px-3 rounded-lg text-sm ${i === 0 ? "bg-green-50 border border-green-100" : "bg-gray-50"}`}>
               <div>
-                <span className="font-medium text-gray-800">{bid.bidder?.full_name || "Anonymous"}</span>
+                <span className="font-medium text-gray-800">{bid.bidder_username || "Anonymous"}</span>
                 {i === 0 && <span className="ml-2 text-xs text-green-600 font-medium">Leading</span>}
               </div>
               <div className="text-right">

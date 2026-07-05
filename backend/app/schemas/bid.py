@@ -18,6 +18,7 @@ class BidResponse(BaseModel):
     id: UUID
     listing_id: UUID
     bidder_id: UUID
+    bidder_username: Optional[str] = None
     amount: float
     status: str
     is_winning: bool = False

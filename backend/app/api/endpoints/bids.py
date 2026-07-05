@@ -16,10 +16,6 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter()
 
-# Flat minimum increment per bid — every bid must be at least $0.10
-# more than the current price. Previously this was used as a multiplier
-# (floor * 1.05) which caused floating-point drift and rejected bids
-# that appeared identical to the minimum shown in the UI.
 MIN_BID_INCREMENT = Decimal("0.10")
 SOFT_CLOSE_WINDOW = 120
 SOFT_CLOSE_EXTENSION = 120
@@ -47,28 +43,27 @@ async def place_bid_logic(
     floor = Decimal(str(listing.current_price or listing.starting_price))
 
     if listing.current_price:
-        # FIX: use flat addition, not percentage multiplication.
-        # floor * (1 + 0.05) caused floating-point drift — e.g. at $1.05
-        # the minimum became $1.1025, so a bid of $1.10 was rejected even
-        # though the UI showed $1.10 as the minimum.
         min_required = (floor + MIN_BID_INCREMENT).quantize(Decimal("0.01"), rounding=ROUND_UP)
     else:
-        # First bid just needs to meet the starting price
         min_required = floor
 
     if amount < min_required:
         raise BadRequestError(f"Minimum bid is ${float(min_required):.2f}")
 
-    # Mark previous highest bid as outbid and fire outbid email
     prev_result = await db.execute(
         select(Bid).where(Bid.listing_id == listing_id, Bid.status == BidStatus.ACTIVE)
     )
     prev_bid = prev_result.scalar_one_or_none()
     outbid_user_id = None
     if prev_bid:
-        prev_bid.status = BidStatus.OUTBID
+        if str(prev_bid.bidder_id) == bidder_id:
+            # Same person raising their own bid — cancel their previous bid silently
+            prev_bid.status = BidStatus.CANCELLED
+        else:
+            # Different person outbid — mark as outbid and notify
+            prev_bid.status = BidStatus.OUTBID
+            outbid_user_id = str(prev_bid.bidder_id)
         prev_bid.is_winning = False
-        outbid_user_id = str(prev_bid.bidder_id)
 
     new_bid = Bid(
         listing_id=listing_id,
@@ -94,7 +89,6 @@ async def place_bid_logic(
     # Broadcast new bid to all WebSocket clients watching this listing
     try:
         from app.api.endpoints.websocket import broadcast_bid
-        from app.services.notification_service import notify_outbid, notify_new_bid_seller
         await broadcast_bid(str(listing_id), {
             "listing_id": str(listing_id),
             "bid_id": str(new_bid.id),
@@ -106,15 +100,15 @@ async def place_bid_logic(
     except Exception:
         pass  # Never fail a bid because of WebSocket broadcast
 
-    # Create in-app notifications
+    # Create in-app notifications using a fresh independent session
     try:
         from app.services.notification_service import notify_outbid, notify_new_bid_seller
-        # Notify previous highest bidder they were outbid
-        if outbid_user_id and outbid_user_id != bidder_id:
-            await notify_outbid(db, outbid_user_id, listing_id, listing.title, float(amount))
-        # Notify seller of new bid
-        if str(listing.seller_id) != bidder_id:
-            await notify_new_bid_seller(db, listing.seller_id, listing_id, listing.title, float(amount))
+        from app.database import async_session_maker
+        async with async_session_maker() as notif_db:
+            if outbid_user_id and outbid_user_id != bidder_id:
+                await notify_outbid(notif_db, outbid_user_id, listing_id, listing.title, float(amount))
+            if str(listing.seller_id) != bidder_id:
+                await notify_new_bid_seller(notif_db, listing.seller_id, listing_id, listing.title, float(amount))
     except Exception:
         pass  # Never fail a bid because of notification
 
@@ -207,11 +201,20 @@ async def cancel_bid(
 @router.get("/listing/{listing_id}", response_model=List[BidResponse])
 async def get_bid_history(listing_id: UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Bid)
-        .where(Bid.listing_id == listing_id)
+        select(Bid, User.username)
+        .join(User, User.id == Bid.bidder_id)
+        .where(
+            Bid.listing_id == listing_id,
+            Bid.status != BidStatus.CANCELLED,
+        )
         .order_by(Bid.amount.desc())
     )
-    return result.scalars().all()
+    rows = result.all()
+    bids = []
+    for bid, username in rows:
+        bid.bidder_username = username
+        bids.append(bid)
+    return bids
 
 
 @router.get("/my", response_model=List[BidResponse])
