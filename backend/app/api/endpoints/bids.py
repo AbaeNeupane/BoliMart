@@ -103,8 +103,8 @@ async def place_bid_logic(
     # Create in-app notifications using a fresh independent session
     try:
         from app.services.notification_service import notify_outbid, notify_new_bid_seller
-        from app.database import async_session_maker
-        async with async_session_maker() as notif_db:
+        from app.database import AsyncSessionLocal
+        async with AsyncSessionLocal() as notif_db:
             if outbid_user_id and outbid_user_id != bidder_id:
                 await notify_outbid(notif_db, outbid_user_id, listing_id, listing.title, float(amount))
             if str(listing.seller_id) != bidder_id:

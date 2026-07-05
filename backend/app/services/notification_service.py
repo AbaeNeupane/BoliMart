@@ -1,5 +1,5 @@
 """
-Notification service — call these functions after bid/auction events.
+Notification service — call these after bid/auction events.
 All functions are async and accept an active db session.
 """
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +32,7 @@ async def notify_auction_won(db: AsyncSession, user_id, listing_id, listing_titl
 
 async def notify_auction_ended_seller(db: AsyncSession, user_id, listing_id, listing_title: str, final_amount: float, had_bids: bool):
     if had_bids:
-        msg = f'Your auction "{listing_title}" ended with a winning bid of ${final_amount:,.2f}.'
+        msg = f'Your auction "{listing_title}" has ended. Winning bid: ${final_amount:,.2f}.'
     else:
         msg = f'Your auction "{listing_title}" ended with no bids.'
     notif = Notification(
@@ -52,6 +52,18 @@ async def notify_new_bid_seller(db: AsyncSession, user_id, listing_id, listing_t
         type="new_bid",
         title="New bid on your listing",
         message=f'Someone placed a bid of ${amount:,.2f} on your listing "{listing_title}".',
+        listing_id=listing_id,
+    )
+    db.add(notif)
+    await db.commit()
+
+
+async def notify_bid_cancelled(db: AsyncSession, user_id, listing_id, listing_title: str):
+    notif = Notification(
+        user_id=user_id,
+        type="bid_cancelled",
+        title="Your bid was cancelled",
+        message=f'Your bid on "{listing_title}" has been cancelled successfully.',
         listing_id=listing_id,
     )
     db.add(notif)

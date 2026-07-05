@@ -8,6 +8,7 @@ const TYPE_ICON = {
   auction_won:   "🎉",
   auction_ended: "🏁",
   new_bid:       "💰",
+  bid_cancelled: "❌",
 }
 
 function timeAgo(isoString) {
@@ -28,13 +29,15 @@ export default function NotificationBell() {
   const { data: countData } = useQuery({
     queryKey: ["notifications-count"],
     queryFn: getUnreadCount,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   })
 
-  const { data: notifData } = useQuery({
+  const { data: notifData, refetch: refetchNotifs } = useQuery({
     queryKey: ["notifications"],
     queryFn: getNotifications,
     enabled: open,
+    staleTime: 0,
   })
 
   const markReadMutation = useMutation({
@@ -60,7 +63,12 @@ export default function NotificationBell() {
     <div className="relative" ref={ref}>
       {/* Bell button */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setOpen((o) => {
+            if (!o) refetchNotifs()
+            return !o
+          })
+        }}
         className="relative flex items-center justify-center w-9 h-9 rounded border-2 border-transparent hover:border-gray-500 text-white transition-colors"
         aria-label="Notifications"
       >
