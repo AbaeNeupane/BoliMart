@@ -53,7 +53,9 @@ class UserResponse(BaseModel):
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
 
     @field_validator("full_name")
     @classmethod
@@ -66,3 +68,28 @@ class UserUpdate(BaseModel):
         if len(v) > 200:
             raise ValueError("Full name must not exceed 200 characters")
         return v
+
+    @field_validator("username")
+    @classmethod
+    def validate_username_update(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        v = value.strip()
+        if len(v) < 3:
+            raise ValueError("Username must be at least 3 characters")
+        if len(v) > 50:
+            raise ValueError("Username must not exceed 50 characters")
+        if " " in v:
+            raise ValueError("Username cannot contain spaces")
+        return v
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        if len(value) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if len(value) > 200:
+            raise ValueError("Password must not exceed 200 characters")
+        return value

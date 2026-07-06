@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { getCategories } from "../../api/listings"
 import NotificationBell from "../notifications/NotificationBell"
+import Profile from "../../pages/user/Profile"
 import logo from "../../assets/logo1.png"
 
 export default function Navbar() {
@@ -211,7 +212,6 @@ export default function Navbar() {
 
               {/* Notification bell — logged in only */}
               {user && <NotificationBell />}
-              {/* Sidebar toggle — logged in all sizes */}
 
               {/* Sidebar toggle — logged in all sizes */}
               {user && (

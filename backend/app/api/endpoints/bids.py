@@ -123,7 +123,9 @@ async def place_bid_logic(
                 float(amount),
             )
         except Exception:
-            pass  # Never fail a bid because of email
+            print(f"NOTIFICATION ERROR: {e}")
+            import traceback
+            traceback.print_exc()
 
     return new_bid
 
