@@ -200,18 +200,10 @@ export default function Navbar() {
                 </div>
               )}
 
-              {/* only show when Logged in — account info */}
-              {/* {user && (
-                <div className="hidden sm:flex items-center">
-                  <div className="flex flex-col items-start px-2 py-1 text-white">
-                    <span className="text-sm text-gray-300 font-bold leading-tight capitalize"> {user.full_name?.split(" ")[0] || user.username}</span>
-                    <span className="text-xs leading-tight ">{user.role}</span>
-                  </div>
-                </div>
-              )} */}
 
               {/* Notification bell — logged in only */}
               {user && <NotificationBell />}
+              
 
               {/* Sidebar toggle — logged in all sizes */}
               {user && (
@@ -270,6 +262,7 @@ export default function Navbar() {
                 </button>
               </form>
             </div>
+            
 
             {/* Category dropdown */}
             <div className="relative">

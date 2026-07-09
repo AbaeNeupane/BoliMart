@@ -26,6 +26,7 @@ import CreateListing from "./pages/user/CreateListing"
 import EditListing from "./pages/user/EditListing"
 import ListingAnalytics from "./pages/user/ListingAnalytics"
 import MyBids from "./pages/user/MyBids"
+import Profile from "./pages/user/Profile"
 import Checkout from "./pages/user/Checkout"
 
 import AdminDashboard from "./pages/admin/AdminDashboard"
@@ -131,6 +132,7 @@ export default function App() {
                     <Route path="/listings/:id/edit" element={<EditListing />} />
                     <Route path="/listings/:id/analytics" element={<ListingAnalytics />} />
                     <Route path="/my-bids" element={<MyBids />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/checkout/:listingId" element={<Checkout />} />
                   </Route>
                 </Route>
